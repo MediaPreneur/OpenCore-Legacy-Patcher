@@ -65,9 +65,9 @@ class BuildBluetooth:
         Fall back to pre-built assumptions
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "Bluetooth Model" in smbios_data.smbios_dictionary[self.model]:
+        if "Bluetooth Model" not in smbios_data.smbios_dictionary[self.model]:
             return
 
         if smbios_data.smbios_dictionary[self.model]["Bluetooth Model"] <= bluetooth_data.bluetooth_data.BRCM20702_v1.value:

@@ -36,7 +36,7 @@ class GenerateDefaults:
         self.constants.custom_serial_number:       str = ""
         self.constants.custom_board_serial_number: str = ""
 
-        if self.host_is_target is True:
+        if self.host_is_target:
             for gpu in self.constants.computer.gpus:
                 if gpu.device_id_unspoofed == -1:
                     gpu.device_id_unspoofed = gpu.device_id
@@ -56,11 +56,7 @@ class GenerateDefaults:
         General probe for data
         """
 
-        if "Book" in self.model:
-            self.constants.set_content_caching = False
-        else:
-            self.constants.set_content_caching = True
-
+        self.constants.set_content_caching = "Book" not in self.model
         if self.model in ["MacBookPro8,2", "MacBookPro8,3"]:
             # Users disabling TS2 most likely have a faulty dGPU
             # users can override this in settings
@@ -80,16 +76,10 @@ class GenerateDefaults:
                 self.constants.disable_cat_colorsync = False
 
         if self.model in smbios_data.smbios_dictionary:
-            if smbios_data.smbios_dictionary[self.model]["CPU Generation"] >= cpu_data.CPUGen.skylake.value:
-                # On 2016-2017 MacBook Pros, 15" devices used a stock Samsung SSD with IONVMeController
-                # Technically this should be patched based on NVMeFix.kext logic,
-                # however Apple deemed the SSD unsupported for enhanced performance
-                # In addition, some upgraded NVMe drives still have issues with enhanced power management
-                # Safest to disable by default, allow user to configure afterwards
-                self.constants.allow_nvme_fixing = False
-            else:
-                self.constants.allow_nvme_fixing = True
-
+            self.constants.allow_nvme_fixing = (
+                smbios_data.smbios_dictionary[self.model]["CPU Generation"]
+                < cpu_data.CPUGen.skylake.value
+            )
         # Check if running in RecoveryOS
         self.constants.recovery_status = utilities.check_recovery()
 
@@ -176,7 +166,7 @@ class GenerateDefaults:
                 return
 
         else:
-            if not self.model in smbios_data.smbios_dictionary:
+            if self.model not in smbios_data.smbios_dictionary:
                 return
             if (
                 smbios_data.smbios_dictionary[self.model]["Wireless Model"] not in [
@@ -221,9 +211,8 @@ class GenerateDefaults:
         gpu_dict = []
         if self.host_is_target:
             gpu_dict = self.constants.computer.gpus
-        else:
-            if self.model in smbios_data.smbios_dictionary:
-                gpu_dict = smbios_data.smbios_dictionary[self.model]["Stock GPUs"]
+        elif self.model in smbios_data.smbios_dictionary:
+            gpu_dict = smbios_data.smbios_dictionary[self.model]["Stock GPUs"]
 
         for gpu in gpu_dict:
             if self.host_is_target:
@@ -274,7 +263,6 @@ class GenerateDefaults:
                         if "Socketed GPUs" in smbios_data.smbios_dictionary[self.model]:
                             self.constants.serial_settings = "Minimal"
 
-                # See if system can use the native AMD stack in Ventura
                 if gpu in [
                     device_probe.AMD.Archs.Polaris,
                     device_probe.AMD.Archs.Polaris_Spoof,
@@ -284,16 +272,14 @@ class GenerateDefaults:
                     if self.host_is_target:
                         if "AVX2" in self.constants.computer.cpu.leafs:
                             continue
-                    else:
-                        if self.model in smbios_data.smbios_dictionary:
-                            if smbios_data.smbios_dictionary[self.model]["CPU Generation"] >= cpu_data.CPUGen.haswell.value:
-                                continue
+                    elif self.model in smbios_data.smbios_dictionary:
+                        if smbios_data.smbios_dictionary[self.model]["CPU Generation"] >= cpu_data.CPUGen.haswell.value:
+                            continue
 
                 self.constants.sip_status = False
                 self.constants.secure_status = False
                 self.constants.disable_cs_lv = True
 
-            # Non-Metal Logic
             elif gpu in [
                 device_probe.Intel.Archs.Iron_Lake,
                 device_probe.Intel.Archs.Sandy_Bridge,

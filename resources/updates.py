@@ -63,10 +63,7 @@ class CheckBinaryUpdates:
             str: "GUI" or "TUI"
         """
 
-        if self.constants.wxpython_variant is True:
-            return "GUI"
-        else:
-            return "TUI"
+        return "GUI" if self.constants.wxpython_variant is True else "TUI"
 
 
     def _determine_remote_type(self, remote_name: str) -> str:

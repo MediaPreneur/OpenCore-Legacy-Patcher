@@ -102,11 +102,11 @@ class OpenCoreLegacyPatcher:
         self.constants.gui_mode = True  # Assumes no user interaction is required
 
         ignore_args = ["--auto_patch", "--gui_patch", "--gui_unpatch", "--update_installed"]
-        if not any(x in sys.argv for x in ignore_args):
+        if all(x not in sys.argv for x in ignore_args):
             self.constants.current_path = Path.cwd()
         ignore_args = ignore_args.pop(0)
 
-        if not any(x in sys.argv for x in ignore_args):
+        if all(x not in sys.argv for x in ignore_args):
             while self.constants.unpack_thread.is_alive():
                 time.sleep(0.1)
 

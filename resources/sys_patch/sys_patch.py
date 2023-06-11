@@ -178,10 +178,10 @@ class PatchSysVolume:
                 logging.info(f"Unable to get KDK info: {kdk_obj.error_msg}")
                 raise Exception(f"Unable to get KDK info: {kdk_obj.error_msg}")
 
-            if kdk_obj.kdk_already_installed is False:
-                # We shouldn't get here, but just in case
-                logging.warning(f"KDK was not installed, but should have been: {kdk_obj.error_msg}")
-                raise Exception("KDK was not installed, but should have been: {kdk_obj.error_msg}")
+        if kdk_obj.kdk_already_installed is False:
+            # We shouldn't get here, but just in case
+            logging.warning(f"KDK was not installed, but should have been: {kdk_obj.error_msg}")
+            raise Exception("KDK was not installed, but should have been: {kdk_obj.error_msg}")
 
         kdk_path = Path(kdk_obj.kdk_installed_path) if kdk_obj.kdk_installed_path != "" else None
 
@@ -199,7 +199,7 @@ class PatchSysVolume:
                 pass
 
         if kdk_path is None:
-            logging.info(f"- Unable to find Kernel Debug Kit")
+            logging.info("- Unable to find Kernel Debug Kit")
             raise Exception("Unable to find Kernel Debug Kit")
         self.kdk_path = kdk_path
         logging.info(f"- Found KDK at: {kdk_path}")
@@ -301,27 +301,26 @@ class PatchSysVolume:
             args = ["kmutil", "install"]
 
             if self.skip_root_kmutil_requirement is True:
-                # Only rebuild the Auxiliary Kernel Collection
-                args.append("--new")
-                args.append("aux")
-
-                args.append("--boot-path")
-                args.append(f"{self.mount_location}/System/Library/KernelCollections/BootKernelExtensions.kc")
-
-                args.append("--system-path")
-                args.append(f"{self.mount_location}/System/Library/KernelCollections/SystemKernelExtensions.kc")
+                args.extend(
+                    (
+                        "--new",
+                        "aux",
+                        "--boot-path",
+                        f"{self.mount_location}/System/Library/KernelCollections/BootKernelExtensions.kc",
+                        "--system-path",
+                        f"{self.mount_location}/System/Library/KernelCollections/SystemKernelExtensions.kc",
+                    )
+                )
             else:
-                # Rebuild Boot, System and Auxiliary Kernel Collections
-                args.append("--volume-root")
-                args.append(self.mount_location)
-
-                # Build Boot, Sys and Aux KC
-                args.append("--update-all")
-
-                # If multiple kernels found, only build release KCs
-                args.append("--variant-suffix")
-                args.append("release")
-
+                args.extend(
+                    (
+                        "--volume-root",
+                        self.mount_location,
+                        "--update-all",
+                        "--variant-suffix",
+                        "release",
+                    )
+                )
             if self.constants.detected_os >= os_data.os_data.ventura:
                 # With Ventura, we're required to provide a KDK in some form
                 # to rebuild the Kernel Cache
@@ -343,8 +342,7 @@ class PatchSysVolume:
                 # When installing to '/Library/Extensions', following args skip kext consent
                 # prompt in System Preferences when SIP's disabled
                 logging.info("  (You will get a prompt by System Preferences, ignore for now)")
-                args.append("--no-authentication")
-                args.append("--no-authorization")
+                args.extend(("--no-authentication", "--no-authorization"))
         else:
             args = ["kextcache", "-i", f"{self.mount_location}/"]
 
@@ -537,9 +535,9 @@ class PatchSysVolume:
 
         destination_path = f"{self.mount_location}/System/Library/CoreServices"
         file_name = "OpenCore-Legacy-Patcher.plist"
-        destination_path_file = f"{destination_path}/{file_name}"
         if sys_patch_helpers.SysPatchHelpers(self.constants).generate_patchset_plist(patchset, file_name, self.kdk_path):
             logging.info("- Writing patchset information to Root Volume")
+            destination_path_file = f"{destination_path}/{file_name}"
             if Path(destination_path_file).exists():
                 utilities.process_status(utilities.elevated(["rm", destination_path_file], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
             utilities.process_status(utilities.elevated(["cp", f"{self.constants.payload_path}/{file_name}", destination_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
@@ -579,7 +577,9 @@ class PatchSysVolume:
         if self.constants.detected_os < os_data.os_data.ventura:
             return destination_folder_path
 
-        updated_install_location = str(self.mount_location_data) + "/Library/Extensions"
+        updated_install_location = (
+            f"{str(self.mount_location_data)}/Library/Extensions"
+        )
 
         logging.info(f"  - Adding AuxKC support to {install_file}")
         plist_path = Path(Path(source_folder_path) / Path(install_file) / Path("Contents/Info.plist"))
@@ -660,10 +660,10 @@ class PatchSysVolume:
         source_files_path = str(self.constants.payload_local_binaries_root_path)
         self._preflight_checks(required_patches, source_files_path)
         for patch in required_patches:
-            logging.info("- Installing Patchset: " + patch)
+            logging.info(f"- Installing Patchset: {patch}")
             if "Remove" in required_patches[patch]:
                 for remove_patch_directory in required_patches[patch]["Remove"]:
-                    logging.info("- Remove Files at: " + remove_patch_directory)
+                    logging.info(f"- Remove Files at: {remove_patch_directory}")
                     for remove_patch_file in required_patches[patch]["Remove"][remove_patch_directory]:
                         destination_folder_path = str(self.mount_location) + remove_patch_directory
                         self._remove_file(destination_folder_path, remove_patch_file)
@@ -674,7 +674,7 @@ class PatchSysVolume:
                     for install_patch_directory in list(required_patches[patch][method_install]):
                         logging.info(f"- Handling Installs in: {install_patch_directory}")
                         for install_file in list(required_patches[patch][method_install][install_patch_directory]):
-                            source_folder_path = source_files_path + "/" + required_patches[patch][method_install][install_patch_directory][install_file] + install_patch_directory
+                            source_folder_path = f"{source_files_path}/{required_patches[patch][method_install][install_patch_directory][install_file]}{install_patch_directory}"
                             if method_install == "Install":
                                 destination_folder_path = str(self.mount_location) + install_patch_directory
                             else:
@@ -738,18 +738,18 @@ class PatchSysVolume:
         if "Intel Sandy Bridge" in required_patches:
             sys_patch_helpers.SysPatchHelpers(self.constants).snb_board_id_patch(source_files_path)
 
-        for patch in required_patches:
+        for patch, value in required_patches.items():
             # Check if all files are present
             for method_type in ["Install", "Install Non-Root"]:
-                if method_type in required_patches[patch]:
+                if method_type in value:
                     for install_patch_directory in required_patches[patch][method_type]:
                         for install_file in required_patches[patch][method_type][install_patch_directory]:
-                            source_file = source_files_path + "/" + required_patches[patch][method_type][install_patch_directory][install_file] + install_patch_directory + "/" + install_file
+                            source_file = f"{source_files_path}/{required_patches[patch][method_type][install_patch_directory][install_file]}{install_patch_directory}/{install_file}"
                             if not Path(source_file).exists():
                                 raise Exception(f"Failed to find {source_file}")
 
         # Ensure KDK is properly installed
-        self._merge_kdk_with_root(save_hid_cs=True if "Legacy USB 1.1" in required_patches else False)
+        self._merge_kdk_with_root(save_hid_cs="Legacy USB 1.1" in required_patches)
 
         logging.info("- Finished Preflight, starting patching")
 
@@ -768,7 +768,7 @@ class PatchSysVolume:
             file_name           (str): Name of the file to install
         """
 
-        file_name_str = str(file_name)
+        file_name_str = file_name
 
         if not Path(destination_folder).exists():
             logging.info(f"  - Skipping {file_name}, cannot locate {source_folder}")
@@ -778,25 +778,24 @@ class PatchSysVolume:
             # merge with rsync
             logging.info(f"  - Installing: {file_name}")
             utilities.elevated(["rsync", "-r", "-i", "-a", f"{source_folder}/{file_name}", f"{destination_folder}/"], stdout=subprocess.PIPE)
-            self._fix_permissions(destination_folder + "/" + file_name)
-        elif Path(source_folder + "/" + file_name_str).is_dir():
+        elif Path(f"{source_folder}/{file_name_str}").is_dir():
             # Applicable for .kext, .app, .plugin, .bundle, all of which are directories
-            if Path(destination_folder + "/" + file_name).exists():
+            if Path(f"{destination_folder}/{file_name}").exists():
                 logging.info(f"  - Found existing {file_name}, overwriting...")
                 utilities.process_status(utilities.elevated(["rm", "-R", f"{destination_folder}/{file_name}"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
             else:
                 logging.info(f"  - Installing: {file_name}")
             utilities.process_status(utilities.elevated(["cp", "-R", f"{source_folder}/{file_name}", destination_folder], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
-            self._fix_permissions(destination_folder + "/" + file_name)
         else:
             # Assume it's an individual file, replace as normal
-            if Path(destination_folder + "/" + file_name).exists():
+            if Path(f"{destination_folder}/{file_name}").exists():
                 logging.info(f"  - Found existing {file_name}, overwriting...")
                 utilities.process_status(utilities.elevated(["rm", f"{destination_folder}/{file_name}"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
             else:
                 logging.info(f"  - Installing: {file_name}")
             utilities.process_status(utilities.elevated(["cp", f"{source_folder}/{file_name}", destination_folder], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
-            self._fix_permissions(destination_folder + "/" + file_name)
+
+        self._fix_permissions(f"{destination_folder}/{file_name}")
 
 
     def _remove_file(self, destination_folder: Path, file_name: str) -> None:
@@ -808,9 +807,9 @@ class PatchSysVolume:
             file_name           (str): Name of the file to remove
         """
 
-        if Path(destination_folder + "/" + file_name).exists():
+        if Path(f"{destination_folder}/{file_name}").exists():
             logging.info(f"  - Removing: {file_name}")
-            if Path(destination_folder + "/" + file_name).is_dir():
+            if Path(f"{destination_folder}/{file_name}").is_dir():
                 utilities.process_status(utilities.elevated(["rm", "-R", f"{destination_folder}/{file_name}"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
             else:
                 utilities.process_status(utilities.elevated(["rm", f"{destination_folder}/{file_name}"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT))

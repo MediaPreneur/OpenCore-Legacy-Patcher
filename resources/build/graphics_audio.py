@@ -51,7 +51,12 @@ class BuildGraphicsAudio:
         """
 
         if self.constants.allow_oc_everywhere is False and self.constants.serial_settings != "None":
-            if not support.BuildSupport(self.model, self.constants, self.config).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"] is True:
+            if (
+                support.BuildSupport(
+                    self.model, self.constants, self.config
+                ).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"]
+                is not True
+            ):
                 support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_version, self.constants.whatevergreen_path)
 
         # Mac Pro handling
@@ -96,7 +101,12 @@ class BuildGraphicsAudio:
                 logging.info("- Adding Mac Pro, Xserve DRM patches")
                 self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += " shikigva=128 unfairgva=1 -wegtree"
 
-            if not support.BuildSupport(self.model, self.constants, self.config).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"] is True:
+            if (
+                support.BuildSupport(
+                    self.model, self.constants, self.config
+                ).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"]
+                is not True
+            ):
                 support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_version, self.constants.whatevergreen_path)
 
         # Web Driver specific
@@ -113,17 +123,12 @@ class BuildGraphicsAudio:
                                 self.config["DeviceProperties"]["Add"][device.pci_path].update({"disable-metal": 1, "force-compat": 1})
                             else:
                                 self.config["DeviceProperties"]["Add"][device.pci_path] = {"disable-metal": 1, "force-compat": 1}
-                            support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_version, self.constants.whatevergreen_path)
-                            self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"].update({"nvda_drv": binascii.unhexlify("31")})
-                            if "nvda_drv" not in self.config["NVRAM"]["Delete"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]:
-                                self.config["NVRAM"]["Delete"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"] += ["nvda_drv"]
-                        else:
-                            if "ngfxgl=1 ngfxcompat=1" not in self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"]:
-                                self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += " ngfxgl=1 ngfxcompat=1"
-                            support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_version, self.constants.whatevergreen_path)
-                            self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"].update({"nvda_drv": binascii.unhexlify("31")})
-                            if "nvda_drv" not in self.config["NVRAM"]["Delete"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]:
-                                self.config["NVRAM"]["Delete"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"] += ["nvda_drv"]
+                        elif "ngfxgl=1 ngfxcompat=1" not in self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"]:
+                            self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += " ngfxgl=1 ngfxcompat=1"
+                        support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_version, self.constants.whatevergreen_path)
+                        self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"].update({"nvda_drv": binascii.unhexlify("31")})
+                        if "nvda_drv" not in self.config["NVRAM"]["Delete"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]:
+                            self.config["NVRAM"]["Delete"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"] += ["nvda_drv"]
 
     def _backlight_path_detection(self) -> None:
         """
@@ -168,7 +173,12 @@ class BuildGraphicsAudio:
         iMac Nvidia Kepler MXM Handler
         """
 
-        if not support.BuildSupport(self.model, self.constants, self.config).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"] is True:
+        if (
+            support.BuildSupport(
+                self.model, self.constants, self.config
+            ).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"]
+            is not True
+        ):
             # Ensure WEG is enabled as we need if for Backlight patching
             support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_navi_version, self.constants.whatevergreen_navi_path)
         if self.model in ["iMac11,1", "iMac11,2", "iMac11,3", "iMac10,1"]:
@@ -216,7 +226,12 @@ class BuildGraphicsAudio:
         """
 
         logging.info("- Adding AMD DRM patches")
-        if not support.BuildSupport(self.model, self.constants, self.config).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"] is True:
+        if (
+            support.BuildSupport(
+                self.model, self.constants, self.config
+            ).get_kext_by_bundle_path("WhateverGreen.kext")["Enabled"]
+            is not True
+        ):
             # Ensure WEG is enabled as we need if for Backlight patching
             support.BuildSupport(self.model, self.constants, self.config).enable_kext("WhateverGreen.kext", self.constants.whatevergreen_navi_version, self.constants.whatevergreen_navi_path)
 
@@ -224,20 +239,19 @@ class BuildGraphicsAudio:
             logging.info("- Adding iMac9,1 Brightness Control and DRM patches")
             support.BuildSupport(self.model, self.constants, self.config).enable_kext("BacklightInjector.kext", self.constants.backlight_injectorA_version, self.constants.backlight_injectorA_path)
 
-        if not self.constants.custom_model:
-            if self.computer.dgpu.device_id == 0x7340:
-                logging.info(f"- Adding AMD RX5500XT vBIOS injection")
-                self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1, "ATY,bin_image": binascii.unhexlify(video_bios_data.RX5500XT_64K) }
-                logging.info(f"- Adding AMD RX5500XT boot-args")
-                self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += " agdpmod=pikera applbkl=3"
-            elif self.computer.dgpu.device_id_unspoofed == 0x6981:
-                logging.info(f"- Adding AMD WX3200 device spoofing")
-                self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1, "model": "AMD Radeon Pro WX 3200", "device-id": binascii.unhexlify("FF67")}
-            else:
-                self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1}
-        else:
-             self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1}
+        if self.constants.custom_model:
+            self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1}
 
+        elif self.computer.dgpu.device_id == 0x7340:
+            logging.info("- Adding AMD RX5500XT vBIOS injection")
+            self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1, "ATY,bin_image": binascii.unhexlify(video_bios_data.RX5500XT_64K) }
+            logging.info("- Adding AMD RX5500XT boot-args")
+            self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += " agdpmod=pikera applbkl=3"
+        elif self.computer.dgpu.device_id_unspoofed == 0x6981:
+            logging.info("- Adding AMD WX3200 device spoofing")
+            self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1, "model": "AMD Radeon Pro WX 3200", "device-id": binascii.unhexlify("FF67")}
+        else:
+            self.config["DeviceProperties"]["Add"][backlight_path] = {"shikigva": 128, "unfairgva": 1, "agdpmod": "pikera", "rebuild-device-tree": 1, "enable-gva-support": 1}
         if self.constants.custom_model and self.model == "iMac11,2":
             # iMac11,2 can have either PciRoot(0x0)/Pci(0x3,0x0)/Pci(0x0,0x0) or PciRoot(0x0)/Pci(0x1,0x0)/Pci(0x0,0x0)
             # Set both properties when we cannot run hardware detection
@@ -287,7 +301,7 @@ class BuildGraphicsAudio:
                 })
         elif self.constants.imac_model == "Navi":
             logging.info("- Adding Navi Spoofing Patches")
-            navi_backlight_path = backlight_path+"/Pci(0x0,0x0)/Pci(0x0,0x0)"
+            navi_backlight_path = f"{backlight_path}/Pci(0x0,0x0)/Pci(0x0,0x0)"
             self.config["DeviceProperties"]["Add"][navi_backlight_path] = {
                 "ATY,bin_image": binascii.unhexlify(video_bios_data.RX5500XT_64K),
                 "shikigva": 128,
@@ -295,7 +309,7 @@ class BuildGraphicsAudio:
                 "rebuild-device-tree": 1,
                 "enable-gva-support": 1
             }
-            logging.info(f"- Adding AMD RX5500XT boot-args")
+            logging.info("- Adding AMD RX5500XT boot-args")
             self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += " agdpmod=pikera applbkl=3"
 
 
@@ -307,32 +321,35 @@ class BuildGraphicsAudio:
         if (self.model in model_array.LegacyAudio or self.model in model_array.MacPro) and self.constants.set_alc_usage is True:
             support.BuildSupport(self.model, self.constants, self.config).enable_kext("AppleALC.kext", self.constants.applealc_version, self.constants.applealc_path)
 
-        # Audio Patch
-        if self.constants.set_alc_usage is True:
-            if smbios_data.smbios_dictionary[self.model]["Max OS Supported"] <= os_data.os_data.high_sierra:
+        if smbios_data.smbios_dictionary[self.model]["Max OS Supported"] <= os_data.os_data.high_sierra:
                 # Models dropped in Mojave also lost Audio support
                 # Xserves and MacPro4,1 are exceptions
                 # iMac7,1 and iMac8,1 require AppleHDA/IOAudioFamily downgrade
-                if not (self.model.startswith("Xserve") or self.model in ["MacPro4,1", "iMac7,1", "iMac8,1"]):
-                    if "nForce Chipset" in smbios_data.smbios_dictionary[self.model]:
-                        hdef_path = "PciRoot(0x0)/Pci(0x8,0x0)"
-                    else:
-                        hdef_path = "PciRoot(0x0)/Pci(0x1b,0x0)"
+            if not (self.model.startswith("Xserve") or self.model in ["MacPro4,1", "iMac7,1", "iMac8,1"]):
+                if self.constants.set_alc_usage is True:
+                    hdef_path = (
+                        "PciRoot(0x0)/Pci(0x8,0x0)"
+                        if "nForce Chipset"
+                        in smbios_data.smbios_dictionary[self.model]
+                        else "PciRoot(0x0)/Pci(0x1b,0x0)"
+                    )
                     # In AppleALC, MacPro3,1's original layout is already in use, forcing layout 13 instead
-                    if self.model == "MacPro3,1":
-                        self.config["DeviceProperties"]["Add"][hdef_path] = {
+                    self.config["DeviceProperties"]["Add"][hdef_path] = (
+                        {
                             "apple-layout-id": 90,
                             "use-apple-layout-id": 1,
                             "alc-layout-id": 13,
                         }
-                    else:
-                        self.config["DeviceProperties"]["Add"][hdef_path] = {
+                        if self.model == "MacPro3,1"
+                        else {
                             "apple-layout-id": 90,
                             "use-apple-layout-id": 1,
                             "use-layout-id": 1,
                         }
+                    )
                     support.BuildSupport(self.model, self.constants, self.config).enable_kext("AppleALC.kext", self.constants.applealc_version, self.constants.applealc_path)
-            elif (self.model.startswith("MacPro") and self.model != "MacPro6,1") or self.model.startswith("Xserve"):
+        elif (self.model.startswith("MacPro") and self.model != "MacPro6,1") or self.model.startswith("Xserve"):
+            if self.constants.set_alc_usage is True:
                 # Used to enable Audio support for non-standard dGPUs
                 support.BuildSupport(self.model, self.constants, self.config).enable_kext("AppleALC.kext", self.constants.applealc_version, self.constants.applealc_path)
 
@@ -496,11 +513,11 @@ class BuildGraphicsAudio:
         gpu_dict = []
         if not self.constants.custom_model:
             gpu_dict = self.constants.computer.gpus
-        else:
-            if not self.model in smbios_data.smbios_dictionary:
-                return
+        elif self.model in smbios_data.smbios_dictionary:
             gpu_dict = smbios_data.smbios_dictionary[self.model]["Stock GPUs"]
 
+        else:
+            return
         # Check if KDKless and KDK GPUs are present
         # We only want KDKless.kext if there are no KDK GPUs
         has_kdkless_gpu = False

@@ -41,14 +41,14 @@ class BuildWiredNetworking:
 
         for controller in self.constants.computer.ethernet:
             if isinstance(controller, device_probe.BroadcomEthernet) and controller.chipset == device_probe.BroadcomEthernet.Chipsets.AppleBCM5701Ethernet:
-                if not self.model in smbios_data.smbios_dictionary:
+                if self.model not in smbios_data.smbios_dictionary:
                     continue
                 if smbios_data.smbios_dictionary[self.model]["CPU Generation"] < cpu_data.CPUGen.ivy_bridge.value:
                     # Required due to Big Sur's BCM5701 requiring VT-D support
                     # Applicable for pre-Ivy Bridge models
                     support.BuildSupport(self.model, self.constants, self.config).enable_kext("CatalinaBCM5701Ethernet.kext", self.constants.bcm570_version, self.constants.bcm570_path)
             elif isinstance(controller, device_probe.IntelEthernet):
-                if not self.model in smbios_data.smbios_dictionary:
+                if self.model not in smbios_data.smbios_dictionary:
                     continue
                 if smbios_data.smbios_dictionary[self.model]["CPU Generation"] < cpu_data.CPUGen.ivy_bridge.value:
                     # Apple's IOSkywalkFamily in DriverKit requires VT-D support
@@ -61,7 +61,9 @@ class BuildWiredNetworking:
                         support.BuildSupport(self.model, self.constants, self.config).enable_kext("Intel82574L.kext", self.constants.intel_82574l_version, self.constants.intel_82574l_path)
             elif isinstance(controller, device_probe.NVIDIAEthernet):
                 support.BuildSupport(self.model, self.constants, self.config).enable_kext("nForceEthernet.kext", self.constants.nforce_version, self.constants.nforce_path)
-            elif isinstance(controller, device_probe.Marvell) or isinstance(controller, device_probe.SysKonnect):
+            elif isinstance(
+                controller, (device_probe.Marvell, device_probe.SysKonnect)
+            ):
                 support.BuildSupport(self.model, self.constants, self.config).enable_kext("MarvelYukonEthernet.kext", self.constants.marvel_version, self.constants.marvel_path)
 
 
@@ -70,9 +72,9 @@ class BuildWiredNetworking:
         Fall back to pre-built assumptions
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "Ethernet Chipset" in smbios_data.smbios_dictionary[self.model]:
+        if "Ethernet Chipset" not in smbios_data.smbios_dictionary[self.model]:
             return
 
         if smbios_data.smbios_dictionary[self.model]["Ethernet Chipset"] == "Broadcom":

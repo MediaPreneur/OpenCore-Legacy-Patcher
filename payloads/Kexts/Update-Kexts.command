@@ -154,7 +154,7 @@ class GenerateKexts:
 
     def _is_build_nightly(self, kext: str, version: str) -> bool:
         # Load CHANGELOG.md
-        changelog_path = Path(f"../../CHANGELOG.md").absolute()
+        changelog_path = Path("../../CHANGELOG.md").absolute()
         with open(changelog_path, "r") as changelog_file:
             changelog = changelog_file.read()
 
@@ -187,24 +187,23 @@ class GenerateKexts:
             if remote_version.startswith("v"):
                 remote_version = remote_version[1:]
 
-            if kext_name == "WhateverGreen":
-                self.weg_version = remote_version
-            elif kext_name == "Lilu":
+            if kext_name == "Lilu":
                 self.lilu_version = remote_version
 
+            elif kext_name == "WhateverGreen":
+                self.weg_version = remote_version
             local_version = self._get_local_version(kext_folder, kext_name, variant)
             if kext_name == "WhateverGreen":
                 self.weg_old = local_version
 
             if packaging.version.parse(remote_version) <= packaging.version.parse(local_version):
                 print(f"  {kext_name} {variant} is up to date: v{local_version}")
-                if remote_version == local_version:
-                    if self._is_build_nightly(kext_name, local_version) is False:
-                        continue
-                    print(f"  {kext_name} {variant} is a nightly build, updating...")
-                else:
+                if remote_version != local_version:
                     continue
 
+                if self._is_build_nightly(kext_name, local_version) is False:
+                    continue
+                print(f"  {kext_name} {variant} is a nightly build, updating...")
             for asset in latest_release["assets"]:
                 if not asset["name"].endswith(f"{variant}.zip"):
                     continue

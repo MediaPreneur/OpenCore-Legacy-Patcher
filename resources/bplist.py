@@ -51,10 +51,7 @@ class BPListWriter(object):
 
         Writes bplist to file
         '''
-        if self.bplist != "":
-            pass
-            # TODO: save self.bplist to file
-        else:
+        if self.bplist == "":
             raise Exception('BPlist not yet generated')
 
 class BPListReader(object):
@@ -68,7 +65,7 @@ class BPListReader(object):
 
         Unpacks the integer of given size (1, 2 or 4 bytes) from string
         '''
-        if   sz == 1:
+        if sz == 1:
             ot = '!B'
         elif sz == 2:
             ot = '!H'
@@ -77,7 +74,7 @@ class BPListReader(object):
         elif sz == 8:
             ot = '!Q'
         else:
-            raise Exception('int unpack size '+str(sz)+' unsupported')
+            raise Exception(f'int unpack size {str(sz)} unsupported')
         return struct.unpack(ot, s)[0]
 
     def __unpackInt(self, offset):
@@ -115,12 +112,12 @@ class BPListReader(object):
 
         Unpacks the float of given size (4 or 8 bytes) from string
         '''
-        if   sz == 4:
+        if sz == 4:
             ot = '!f'
         elif sz == 8:
             ot = '!d'
         else:
-            raise Exception('float unpack size '+str(sz)+' unsupported')
+            raise Exception(f'float unpack size {str(sz)} unsupported')
         return struct.unpack(ot, s)[0]
 
     def __unpackFloat(self, offset):
@@ -144,8 +141,8 @@ class BPListReader(object):
         '''
         obj_header = self.data[offset]
         obj_type, obj_info = (obj_header & 0xF0), (obj_header & 0x0F)
-        if   obj_type == 0x00:
-            if   obj_info == 0x00: # null   0000 0000
+        if obj_type == 0x00:
+            if obj_info == 0x00: # null   0000 0000
                 return None
             elif obj_info == 0x08: # bool   0000 1000           // false
                 return False
@@ -154,7 +151,7 @@ class BPListReader(object):
             elif obj_info == 0x0F: # fill   0000 1111           // fill byte
                 raise Exception("0x0F Not Implemented") # this is really pad byte, FIXME
             else:
-                raise Exception('unpack item type '+str(obj_header)+' at '+str(offset)+ 'failed')
+                raise Exception(f'unpack item type {str(obj_header)} at {str(offset)}failed')
         elif obj_type == 0x10: #     int    0001 nnnn   ...     // # of bytes is 2^nnnn, big-endian bytes
             return self.__unpackInt(offset)
         elif obj_type == 0x20: #    real    0010 nnnn   ...     // # of bytes is 2^nnnn, big-endian bytes
@@ -176,26 +173,49 @@ class BPListReader(object):
             return self.data[objref:objref+obj_count]
         elif obj_type == 0xA0: #    array   1010 nnnn   [int]   objref* // nnnn is count, unless '1111', then int count follows
             obj_count, objref = self.__resolveIntSize(obj_info, offset)
-            arr = []
-            for i in range(obj_count):
-                arr.append(self.__unpackIntStruct(self.object_ref_size, self.data[objref+i*self.object_ref_size:objref+i*self.object_ref_size+self.object_ref_size]))
-            return arr
+            return [
+                self.__unpackIntStruct(
+                    self.object_ref_size,
+                    self.data[
+                        objref
+                        + i * self.object_ref_size : objref
+                        + i * self.object_ref_size
+                        + self.object_ref_size
+                    ],
+                )
+                for i in range(obj_count)
+            ]
         elif obj_type == 0xC0: #   set      1100 nnnn   [int]   objref* // nnnn is count, unless '1111', then int count follows
             # XXX: not serializable via apple implementation
             raise Exception("0xC0 Not Implemented") # FIXME: implement
         elif obj_type == 0xD0: #   dict     1101 nnnn   [int]   keyref* objref* // nnnn is count, unless '1111', then int count follows
             obj_count, objref = self.__resolveIntSize(obj_info, offset)
-            keys = []
-            for i in range(obj_count):
-                keys.append(self.__unpackIntStruct(self.object_ref_size, self.data[objref+i*self.object_ref_size:objref+i*self.object_ref_size+self.object_ref_size]))
-            values = []
+            keys = [
+                self.__unpackIntStruct(
+                    self.object_ref_size,
+                    self.data[
+                        objref
+                        + i * self.object_ref_size : objref
+                        + i * self.object_ref_size
+                        + self.object_ref_size
+                    ],
+                )
+                for i in range(obj_count)
+            ]
             objref += obj_count*self.object_ref_size
-            for i in range(obj_count):
-                values.append(self.__unpackIntStruct(self.object_ref_size, self.data[objref+i*self.object_ref_size:objref+i*self.object_ref_size+self.object_ref_size]))
-            dic = {}
-            for i in range(obj_count):
-                dic[keys[i]] = values[i]
-            return dic
+            values = [
+                self.__unpackIntStruct(
+                    self.object_ref_size,
+                    self.data[
+                        objref
+                        + i * self.object_ref_size : objref
+                        + i * self.object_ref_size
+                        + self.object_ref_size
+                    ],
+                )
+                for i in range(obj_count)
+            ]
+            return {keys[i]: values[i] for i in range(obj_count)}
         else:
             raise Exception('don\'t know how to unpack obj type '+hex(obj_type)+' at '+str(offset))
 
@@ -205,9 +225,7 @@ class BPListReader(object):
         except KeyError:
             obj = self.objects[idx]
             if type(obj) == list:
-                newArr = []
-                for i in obj:
-                    newArr.append(self.__resolveObject(i))
+                newArr = [self.__resolveObject(i) for i in obj]
                 self.resolved[idx] = newArr
                 return newArr
             if type(obj) == dict:
@@ -239,7 +257,7 @@ class BPListReader(object):
         self.offset_table = self.data[self.table_offset:-32]
         self.offsets = []
         ot = self.offset_table
-        for i in range(self.number_of_objects):
+        for _ in range(self.number_of_objects):
             offset_entry = ot[:self.offset_size]
             ot = ot[self.offset_size:]
             self.offsets.append(self.__unpackIntStruct(self.offset_size, offset_entry))
@@ -247,11 +265,8 @@ class BPListReader(object):
 
         # read object table
         self.objects = []
-        k = 0
         for i in self.offsets:
             obj = self.__unpackItem(i)
-            #print "** plist unpacked",k,type(obj),obj,"at",i
-            k += 1
             self.objects.append(obj)
 
         # rebuild object tree
@@ -288,5 +303,5 @@ if __name__ == "__main__":
 
     out = BPListReader(data).parse()
 
-    with open(file_path + ".json", "w") as fp:
+    with open(f"{file_path}.json", "w") as fp:
         json.dump(out, indent=4)

@@ -62,15 +62,19 @@ def generate_fw_features(model, custom):
         firmwarefeature = utilities.get_rom("firmware-features")
         if not firmwarefeature:
             logging.info("- Failed to find FirmwareFeatures, falling back on defaults")
-            if smbios_data.smbios_dictionary[model]["FirmwareFeatures"] is None:
-                firmwarefeature = 0
-            else:
-                firmwarefeature = int(smbios_data.smbios_dictionary[model]["FirmwareFeatures"], 16)
+            firmwarefeature = (
+                0
+                if smbios_data.smbios_dictionary[model]["FirmwareFeatures"]
+                is None
+                else int(
+                    smbios_data.smbios_dictionary[model]["FirmwareFeatures"],
+                    16,
+                )
+            )
+    elif smbios_data.smbios_dictionary[model]["FirmwareFeatures"] is None:
+        firmwarefeature = 0
     else:
-        if smbios_data.smbios_dictionary[model]["FirmwareFeatures"] is None:
-            firmwarefeature = 0
-        else:
-            firmwarefeature = int(smbios_data.smbios_dictionary[model]["FirmwareFeatures"], 16)
+        firmwarefeature = int(smbios_data.smbios_dictionary[model]["FirmwareFeatures"], 16)
     firmwarefeature = update_firmware_features(firmwarefeature)
     return firmwarefeature
 
@@ -135,33 +139,30 @@ def determine_best_board_id_for_sandy(current_board_id, gpus):
     #   Unknown(MBP)  - Mac-94245AF5819B141B
     #   Unknown(iMac) - Mac-942B5B3A40C91381 (headless)
     if current_board_id:
-        model = find_model_off_board(current_board_id)
-        if model:
+        if model := find_model_off_board(current_board_id):
             if model.startswith("MacBook"):
                 try:
                     size = int(smbios_data.smbios_dictionary[model]["Screen Size"])
                 except KeyError:
                     size = 13 # Assume 13 if it's missing
-                if model.startswith("MacBookPro"):
-                    if size >= 17:
-                        return find_board_off_model("MacBookPro8,3")
-                    elif size >= 15:
-                        return find_board_off_model("MacBookPro8,2")
-                    else:
-                        return find_board_off_model("MacBookPro8,1")
-                else: # MacBook and MacBookAir
-                    if size >= 13:
-                        return find_board_off_model("MacBookAir4,2")
-                    else:
-                        return find_board_off_model("MacBookAir4,1")
-            else:
-                # We're working with a desktop, so need to figure out whether the unit is running headless or not
-                if len(gpus) > 1:
-                    # More than 1 GPU detected, assume headless
-                    if model.startswith("Macmini"):
-                        return find_board_off_model("Macmini5,2")
-                    else:
-                        return find_board_off_model("iMac12,2")
+                if not model.startswith("MacBookPro"):
+                    return (
+                        find_board_off_model("MacBookAir4,2")
+                        if size >= 13
+                        else find_board_off_model("MacBookAir4,1")
+                    )
+                if size >= 17:
+                    return find_board_off_model("MacBookPro8,3")
+                elif size >= 15:
+                    return find_board_off_model("MacBookPro8,2")
                 else:
-                    return find_board_off_model("Macmini5,1")
+                    return find_board_off_model("MacBookPro8,1")
+            elif len(gpus) > 1:
+                # More than 1 GPU detected, assume headless
+                if model.startswith("Macmini"):
+                    return find_board_off_model("Macmini5,2")
+                else:
+                    return find_board_off_model("iMac12,2")
+            else:
+                return find_board_off_model("Macmini5,1")
     return find_board_off_model("Macmini5,1") # Safest bet if we somehow don't know the model

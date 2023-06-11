@@ -27,32 +27,36 @@ class RoutePayloadDiskImage:
         Currently only applicable for GUI variant and not running from source
         """
 
-        if self.constants.wxpython_variant is True and not self.constants.launcher_script:
-            logging.info("Running in Binary GUI mode, switching to tmp directory")
-            self.temp_dir = tempfile.TemporaryDirectory()
-            logging.info(f"New payloads location: {self.temp_dir.name}")
-            logging.info("Creating payloads directory")
-            Path(self.temp_dir.name / Path("payloads")).mkdir(parents=True, exist_ok=True)
-            self._unmount_active_dmgs(unmount_all_active=False)
-            output = subprocess.run(
-                [
-                    "hdiutil", "attach", "-noverify", f"{self.constants.payload_path_dmg}",
-                    "-mountpoint", Path(self.temp_dir.name / Path("payloads")),
-                    "-nobrowse",
-                    "-shadow", Path(self.temp_dir.name / Path("payloads_overlay")),
-                    "-passphrase", "password"
-                ],
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-            )
-            if output.returncode == 0:
-                logging.info("Mounted payloads.dmg")
-                self.constants.current_path = Path(self.temp_dir.name)
-                self.constants.payload_path = Path(self.temp_dir.name) / Path("payloads")
-                atexit.register(self._unmount_active_dmgs, unmount_all_active=False)
-            else:
-                logging.info("Failed to mount payloads.dmg")
-                logging.info(f"Output: {output.stdout.decode()}")
-                logging.info(f"Return Code: {output.returncode}")
+        if (
+            self.constants.wxpython_variant is not True
+            or self.constants.launcher_script
+        ):
+            return
+        logging.info("Running in Binary GUI mode, switching to tmp directory")
+        self.temp_dir = tempfile.TemporaryDirectory()
+        logging.info(f"New payloads location: {self.temp_dir.name}")
+        logging.info("Creating payloads directory")
+        Path(self.temp_dir.name / Path("payloads")).mkdir(parents=True, exist_ok=True)
+        self._unmount_active_dmgs(unmount_all_active=False)
+        output = subprocess.run(
+            [
+                "hdiutil", "attach", "-noverify", f"{self.constants.payload_path_dmg}",
+                "-mountpoint", Path(self.temp_dir.name / Path("payloads")),
+                "-nobrowse",
+                "-shadow", Path(self.temp_dir.name / Path("payloads_overlay")),
+                "-passphrase", "password"
+            ],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        if output.returncode == 0:
+            logging.info("Mounted payloads.dmg")
+            self.constants.current_path = Path(self.temp_dir.name)
+            self.constants.payload_path = Path(self.temp_dir.name) / Path("payloads")
+            atexit.register(self._unmount_active_dmgs, unmount_all_active=False)
+        else:
+            logging.info("Failed to mount payloads.dmg")
+            logging.info(f"Output: {output.stdout.decode()}")
+            logging.info(f"Return Code: {output.returncode}")
 
 
     def _unmount_active_dmgs(self, unmount_all_active: bool = True) -> None:
@@ -74,18 +78,16 @@ class RoutePayloadDiskImage:
         for variant in ["Universal-Binaries.dmg", "payloads.dmg"]:
             for image in dmg_info["images"]:
                 if image["image-path"].endswith(variant):
-                    if unmount_all_active is False:
-                        # Check that only our personal payloads.dmg is unmounted
-                        if "shadow-path" in image:
-                            if self.temp_dir.name in image["shadow-path"]:
-                                logging.info(f"Unmounting personal {variant}")
-                                subprocess.run(
-                                    ["hdiutil", "detach", image["system-entities"][0]["dev-entry"], "-force"],
-                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-                                )
-                    else:
+                    if unmount_all_active:
                         logging.info(f"Unmounting {variant} at: {image['system-entities'][0]['dev-entry']}")
                         subprocess.run(
                             ["hdiutil", "detach", image["system-entities"][0]["dev-entry"], "-force"],
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT
                         )
+                    elif "shadow-path" in image:
+                        if self.temp_dir.name in image["shadow-path"]:
+                            logging.info(f"Unmounting personal {variant}")
+                            subprocess.run(
+                                ["hdiutil", "detach", image["system-entities"][0]["dev-entry"], "-force"],
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+                            )

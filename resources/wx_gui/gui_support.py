@@ -74,8 +74,8 @@ class GaugePulseCallback:
         self.max_value: int = gauge.GetRange()
 
         self.non_metal_alternative: bool = CheckProperties(global_constants).host_is_non_metal()
-        if self.non_metal_alternative is True:
-            if CheckProperties(global_constants).host_psp_version() >= packaging.version.Version("1.1.2"):
+        if CheckProperties(global_constants).host_psp_version() >= packaging.version.Version("1.1.2"):
+            if self.non_metal_alternative:
                 self.non_metal_alternative = False
 
 
@@ -128,10 +128,7 @@ class CheckProperties:
             return False
         if self.constants.allow_oc_everywhere is True:
             return True
-        if self.constants.computer.real_model in model_array.SupportedSMBIOS:
-            return True
-
-        return False
+        return self.constants.computer.real_model in model_array.SupportedSMBIOS
 
 
     def host_is_non_metal(self, general_check: bool = False):
@@ -140,15 +137,18 @@ class CheckProperties:
         Primarily for wx.Gauge().Pulse() workaround (where animation doesn't work on Monterey+)
         """
 
-        if self.constants.detected_os < os_data.os_data.monterey and general_check is False:
+        if (
+            self.constants.detected_os < os_data.os_data.monterey
+            and not general_check
+        ):
             return False
-        if self.constants.detected_os < os_data.os_data.big_sur and general_check is True:
+        if self.constants.detected_os < os_data.os_data.big_sur and general_check:
             return False
-        if not Path("/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLightOld.dylib").exists():
-            # SkyLight stubs are only used on non-Metal
-            return False
-
-        return True
+        return bool(
+            Path(
+                "/System/Library/PrivateFrameworks/SkyLight.framework/Versions/A/SkyLightOld.dylib"
+            ).exists()
+        )
 
 
     def host_has_cpu_gen(self, gen: int) -> bool:

@@ -268,8 +268,16 @@ class KernelDebugKitObject:
         logging.info(f"Returning DownloadObject for KDK: {Path(self.kdk_url).name}")
         self.success = True
 
-        kdk_download_path = self.constants.kdk_download_path if override_path == "" else Path(override_path)
-        kdk_plist_path = Path(f"{kdk_download_path.parent}/{KDK_INFO_PLIST}") if override_path == "" else Path(f"{Path(override_path).parent}/{KDK_INFO_PLIST}")
+        kdk_download_path = (
+            self.constants.kdk_download_path
+            if not override_path
+            else Path(override_path)
+        )
+        kdk_plist_path = (
+            Path(f"{kdk_download_path.parent}/{KDK_INFO_PLIST}")
+            if not override_path
+            else Path(f"{Path(override_path).parent}/{KDK_INFO_PLIST}")
+        )
 
         self._generate_kdk_info_plist(kdk_plist_path)
         return network_handler.DownloadObject(self.kdk_url, kdk_download_path)
@@ -392,11 +400,7 @@ class KernelDebugKitObject:
             return None
 
         if match is None:
-            if check_version:
-                match = self.host_version
-            else:
-                match = self.host_build
-
+            match = self.host_version if check_version else self.host_build
         if not Path(KDK_INSTALL_PATH).exists():
             return None
 
@@ -406,9 +410,8 @@ class KernelDebugKitObject:
             if check_version:
                 if match not in kdk_folder.name:
                     continue
-            else:
-                if not kdk_folder.name.endswith(f"{match}.kdk"):
-                    continue
+            elif not kdk_folder.name.endswith(f"{match}.kdk"):
+                continue
 
             if self._local_kdk_valid(kdk_folder):
                 return kdk_folder
@@ -423,9 +426,8 @@ class KernelDebugKitObject:
             if check_version:
                 if match not in kdk_pkg.name:
                     continue
-            else:
-                if not kdk_pkg.name.endswith(f"{match}.pkg"):
-                    continue
+            elif not kdk_pkg.name.endswith(f"{match}.pkg"):
+                continue
 
             logging.info(f"Found KDK backup: {kdk_pkg.name}")
             if self.passive is False:
@@ -498,12 +500,12 @@ class KernelDebugKitObject:
         logging.info("Cleaning unused KDKs")
         for kdk_folder in Path(KDK_INSTALL_PATH).iterdir():
             if kdk_folder.name.endswith(".kdk") or kdk_folder.name.endswith(".pkg"):
-                should_remove = True
-                for build in exclude_builds:
-                    if kdk_folder.name.endswith(f"_{build}.kdk") or kdk_folder.name.endswith(f"_{build}.pkg"):
-                        should_remove = False
-                        break
-                if should_remove is False:
+                should_remove = not any(
+                    kdk_folder.name.endswith(f"_{build}.kdk")
+                    or kdk_folder.name.endswith(f"_{build}.pkg")
+                    for build in exclude_builds
+                )
+                if not should_remove:
                     continue
                 self._remove_kdk(kdk_folder)
 
@@ -572,7 +574,7 @@ class KernelDebugKitUtilities:
             return False
 
         logging.info(f"Installing KDK package: {kdk_path.name}")
-        logging.info(f"- This may take a while...")
+        logging.info("- This may take a while...")
 
         # TODO: Check whether enough disk space is available
 
@@ -602,7 +604,7 @@ class KernelDebugKitUtilities:
             logging.warning("Cannot install KDK, not running as root")
             return False
 
-        logging.info(f"Extracting downloaded KDK disk image")
+        logging.info("Extracting downloaded KDK disk image")
         with tempfile.TemporaryDirectory() as mount_point:
             result = subprocess.run(["hdiutil", "attach", kdk_path, "-mountpoint", mount_point, "-nobrowse"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             if result.returncode != 0:

@@ -124,21 +124,20 @@ class MainFrame(wx.Frame):
         rollover = len(menu_buttons) / 2
         if rollover % 1 != 0:
             rollover = int(rollover) + 1
-        index = 0
         max_height = 0
-        for button_name, button_function in menu_buttons.items():
+        for index, (button_name, button_function) in enumerate(menu_buttons.items(), start=1):
             # place icon
             if "icon" in button_function:
                 icon = wx.StaticBitmap(self, bitmap=wx.Bitmap(button_function["icon"], wx.BITMAP_TYPE_ICON), pos=(button_x - 10, button_y), size=(64, 64))
-                if button_name == "Post-Install Root Patch":
-                    icon.SetPosition((-1, button_y + 7))
-                if button_name == "Create macOS Installer":
-                    icon.SetPosition((button_x - 5, button_y + 3))
-                if button_name == "Support":
-                    # icon_mac.SetSize((80, 80))
-                    icon.SetPosition((button_x - 7, button_y + 3))
                 if button_name == "Build and Install OpenCore":
                     icon.SetSize((70, 70))
+                elif button_name == "Create macOS Installer":
+                    icon.SetPosition((button_x - 5, button_y + 3))
+                elif button_name == "Post-Install Root Patch":
+                    icon.SetPosition((-1, button_y + 7))
+                elif button_name == "Support":
+                    # icon_mac.SetSize((80, 80))
+                    icon.SetPosition((button_x - 7, button_y + 3))
             if button_name == "⚙️ Settings":
                 button_y += 5
 
@@ -154,11 +153,7 @@ class MainFrame(wx.Frame):
             for i, line in enumerate(button_function["description"]):
                 if line == "":
                     continue
-                if i == 0:
-                    button_y += 11
-                else:
-                    button_y += 13
-
+                button_y += 11 if i == 0 else 13
             button_y += 25
 
             if button_name == "Build and Install OpenCore":
@@ -173,7 +168,6 @@ class MainFrame(wx.Frame):
                 button.Centre(wx.HORIZONTAL)
                 description_label.Centre(wx.HORIZONTAL)
 
-            index += 1
             if index == rollover:
                 max_height = button_y
                 button_x = 320

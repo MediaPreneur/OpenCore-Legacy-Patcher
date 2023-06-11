@@ -104,9 +104,9 @@ class BuildFrame(wx.Frame):
         self.return_button.Enable()
         dialog = wx.MessageDialog(
             parent=self,
-            message=f"Would you like to install OpenCore now?",
+            message="Would you like to install OpenCore now?",
             caption="Finished building your OpenCore configuration!",
-            style=wx.YES_NO | wx.ICON_QUESTION
+            style=wx.YES_NO | wx.ICON_QUESTION,
         )
         dialog.SetYesNoLabels("Install to disk", "View build log")
 

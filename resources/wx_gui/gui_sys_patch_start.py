@@ -46,7 +46,7 @@ class SysPatchStartFrame(wx.Frame):
         gui_support.GenerateMenubar(self, self.constants).generate()
         self.Centre()
 
-        if self.patches == {}:
+        if not self.patches:
             self.patches = sys_patch_detect.DetectRootPatch(self.constants.computer.real_model, self.constants).detect_patch_set()
 
 

@@ -36,12 +36,7 @@ class BuildSupport:
 
         """
 
-        item = None
-        for i in iterable:
-            if i[key] == value:
-                item = i
-                break
-        return item
+        return next((i for i in iterable if i[key] == value), None)
 
 
     def get_kext_by_bundle_path(self, bundle_path: str) -> dict:
@@ -191,8 +186,8 @@ class BuildSupport:
             "UEFI":   ["Drivers"],
         }
 
-        for entry in entries_to_clean:
-            for sub_entry in entries_to_clean[entry]:
+        for entry, value in entries_to_clean.items():
+            for sub_entry in value:
                 for item in list(self.config[entry][sub_entry]):
                     if item["Enabled"] is False:
                         self.config[entry][sub_entry].remove(item)
@@ -223,11 +218,10 @@ class BuildSupport:
         ]
         for kext in Path(self.constants.opencore_release_folder / Path("EFI/OC/Kexts")).glob("*.kext"):
             for plugin in Path(kext / "Contents/PlugIns/").glob("*.kext"):
-                should_remove = True
-                for enabled_kexts in self.config["Kernel"]["Add"]:
-                    if enabled_kexts["BundlePath"].endswith(plugin.name):
-                        should_remove = False
-                        break
+                should_remove = not any(
+                    enabled_kexts["BundlePath"].endswith(plugin.name)
+                    for enabled_kexts in self.config["Kernel"]["Add"]
+                )
                 if should_remove:
                     if plugin.name not in known_unused_plugins:
                         raise Exception(f" - Unknown plugin found: {plugin.name}")

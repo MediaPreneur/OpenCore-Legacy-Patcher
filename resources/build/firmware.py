@@ -45,9 +45,9 @@ class BuildFirmware:
         Power Management Handling
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "CPU Generation" in smbios_data.smbios_dictionary[self.model]:
+        if "CPU Generation" not in smbios_data.smbios_dictionary[self.model]:
             return
 
         if smbios_data.smbios_dictionary[self.model]["CPU Generation"] <= cpu_data.CPUGen.ivy_bridge.value:
@@ -81,9 +81,9 @@ class BuildFirmware:
             # This patch will simply increase ASPP's 'IOProbeScore' to outmatch X86PP
             logging.info("- Overriding ACPI SMC matching")
             support.BuildSupport(self.model, self.constants, self.config).enable_kext("ASPP-Override.kext", self.constants.aspp_override_version, self.constants.aspp_override_path)
-            if self.constants.disable_fw_throttle is True:
-                # Only inject on older OSes if user requests
-                support.BuildSupport(self.model, self.constants, self.config).get_item_by_kv(self.config["Kernel"]["Add"], "BundlePath", "ASPP-Override.kext")["MinKernel"] = ""
+        if self.constants.disable_fw_throttle is True:
+            # Only inject on older OSes if user requests
+            support.BuildSupport(self.model, self.constants, self.config).get_item_by_kv(self.config["Kernel"]["Add"], "BundlePath", "ASPP-Override.kext")["MinKernel"] = ""
 
         if self.constants.disable_fw_throttle is True and smbios_data.smbios_dictionary[self.model]["CPU Generation"] >= cpu_data.CPUGen.nehalem.value:
             logging.info("- Disabling Firmware Throttling")
@@ -96,15 +96,20 @@ class BuildFirmware:
         ACPI Table Handling
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "CPU Generation" in smbios_data.smbios_dictionary[self.model]:
+        if "CPU Generation" not in smbios_data.smbios_dictionary[self.model]:
             return
 
         # Resolves Big Sur support for consumer Nehalem
         # CPBG device in ACPI is a Co-Processor Bridge Device, which is not actually physically present
         # IOPCIFamily will error when enumerating this device, thus we'll power it off via _STA (has no effect in older OSes)
-        if smbios_data.smbios_dictionary[self.model]["CPU Generation"] == cpu_data.CPUGen.nehalem.value and not (self.model.startswith("MacPro") or self.model.startswith("Xserve")):
+        if (
+            smbios_data.smbios_dictionary[self.model]["CPU Generation"]
+            == cpu_data.CPUGen.nehalem.value
+            and not self.model.startswith("MacPro")
+            and not self.model.startswith("Xserve")
+        ):
             logging.info("- Adding SSDT-CPBG.aml")
             support.BuildSupport(self.model, self.constants, self.config).get_item_by_kv(self.config["ACPI"]["Add"], "Path", "SSDT-CPBG.aml")["Enabled"] = True
             shutil.copy(self.constants.pci_ssdt_path, self.constants.acpi_path)
@@ -123,9 +128,9 @@ class BuildFirmware:
         CPU Compatibility Handling
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "CPU Generation" in smbios_data.smbios_dictionary[self.model]:
+        if "CPU Generation" not in smbios_data.smbios_dictionary[self.model]:
             return
 
         # SSE4,1 support (ie. Penryn)
@@ -143,7 +148,7 @@ class BuildFirmware:
         # i3 Ivy Bridge iMacs don't support RDRAND
         # However for prebuilt, assume they do
         if (not self.constants.custom_model and "RDRAND" not in self.computer.cpu.flags) or \
-            (smbios_data.smbios_dictionary[self.model]["CPU Generation"] <= cpu_data.CPUGen.sandy_bridge.value):
+                (smbios_data.smbios_dictionary[self.model]["CPU Generation"] <= cpu_data.CPUGen.sandy_bridge.value):
             # Ref: https://github.com/reenigneorcim/SurPlus
             # Enable for all systems missing RDRAND support
             logging.info("- Adding SurPlus Patch for Race Condition")
@@ -179,9 +184,9 @@ class BuildFirmware:
         Firmware Driver Handling (Drivers/*.efi)
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "CPU Generation" in smbios_data.smbios_dictionary[self.model]:
+        if "CPU Generation" not in smbios_data.smbios_dictionary[self.model]:
             return
 
         # Exfat check
@@ -232,7 +237,7 @@ class BuildFirmware:
             self.model in ["MacPro6,1", "MacBookPro4,1"] or
             (
                 smbios_data.smbios_dictionary[self.model]["CPU Generation"] < cpu_data.CPUGen.sandy_bridge.value and \
-                not self.model.startswith("MacBook")
+                    not self.model.startswith("MacBook")
             )
         ):
             logging.info("- Adding PCI Bus Enumeration Patch")
@@ -243,13 +248,12 @@ class BuildFirmware:
             self.config["Kernel"]["Emulate"]["Cpuid1Data"] = binascii.unhexlify("00000000000000000000008000000000")
             self.config["Kernel"]["Emulate"]["Cpuid1Mask"] = binascii.unhexlify("00000000000000000000008000000000")
 
-        if (
-            self.model.startswith("MacBook")
-            and (
-                smbios_data.smbios_dictionary[self.model]["CPU Generation"] == cpu_data.CPUGen.haswell.value or
-                smbios_data.smbios_dictionary[self.model]["CPU Generation"] == cpu_data.CPUGen.broadwell.value
-            )
-        ):
+        if self.model.startswith("MacBook") and smbios_data.smbios_dictionary[
+            self.model
+        ]["CPU Generation"] in [
+            cpu_data.CPUGen.haswell.value,
+            cpu_data.CPUGen.broadwell.value,
+        ]:
             # Fix Virtual Machine support for non-macOS OSes
             # Haswell and Broadwell MacBooks lock out the VMX bit if booting UEFI Windows
             logging.info("- Enabling VMX Bit for non-macOS OSes")

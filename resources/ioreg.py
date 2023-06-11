@@ -205,12 +205,9 @@ objc.loadBundleVariables(IOKit_bundle, globals(), variables)  # type: ignore # p
 
 
 def ioiterator_to_list(iterator: io_iterator_t):
-    # items = []
-    item = IOIteratorNext(iterator)  # noqa: F821
-    while item:
+    while item := IOIteratorNext(iterator):
         # items.append(next)
         yield item
-        item = IOIteratorNext(iterator)  # noqa: F821
     IOObjectRelease(iterator)  # noqa: F821
     # return items
 

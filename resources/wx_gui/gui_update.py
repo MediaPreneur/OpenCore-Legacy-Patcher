@@ -45,7 +45,7 @@ class UpdateFrame(wx.Frame):
             self.screen_location = self.GetScreenPosition()
 
 
-        if url == "" or version_label == "":
+        if not url or not version_label:
             dict = updates.CheckBinaryUpdates(self.constants).check_binary_updates()
             if dict:
                 for key in dict:
