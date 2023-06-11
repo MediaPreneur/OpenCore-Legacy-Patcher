@@ -86,9 +86,13 @@ class ChunklistVerification:
             return None
 
         all_chunks = chunklist[header["chunkOffset"]:header["chunkOffset"]+header["chunkCount"]*CHUNK_LENGTH]
-        chunks = [{"length": int.from_bytes(all_chunks[i:i+4], "little"), "checksum": all_chunks[i+4:i+CHUNK_LENGTH]} for i in range(0, len(all_chunks), CHUNK_LENGTH)]
-
-        return chunks
+        return [
+            {
+                "length": int.from_bytes(all_chunks[i : i + 4], "little"),
+                "checksum": all_chunks[i + 4 : i + CHUNK_LENGTH],
+            }
+            for i in range(0, len(all_chunks), CHUNK_LENGTH)
+        ]
 
 
     def _validate(self) -> None:

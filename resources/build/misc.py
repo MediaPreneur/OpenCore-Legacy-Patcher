@@ -72,9 +72,9 @@ class BuildMiscellaneous:
             support.BuildSupport(self.model, self.constants, self.config).enable_kext("RestrictEvents.kext", self.constants.restrictevents_version, self.constants.restrictevents_path)
             self.config["NVRAM"]["Add"]["4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102"]["revblock"] = block_args
 
-        if block_args != "" and patch_args == "":
-            # Disable unneeded Userspace patching (cs_validate_page is quite expensive)
-            patch_args = "none"
+            if not patch_args:
+                # Disable unneeded Userspace patching (cs_validate_page is quite expensive)
+                patch_args = "none"
 
         if patch_args != "":
             logging.info(f"- Setting RestrictEvents patch arguments: {patch_args}")

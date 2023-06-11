@@ -117,10 +117,10 @@ class DetectRootPatch:
                         ):
                             self.kepler_gpu = True
                             self.supports_metal = True
-                            if self.constants.detected_os >= os_data.os_data.ventura:
-                                self.amfi_must_disable = True
-                                if (self.constants.detected_os == os_data.os_data.ventura and self.constants.detected_os_minor >= 4) or self.constants.detected_os > os_data.os_data.ventura:
-                                    self.amfi_shim_bins = True
+                        if self.constants.detected_os >= os_data.os_data.ventura:
+                            self.amfi_must_disable = True
+                            if (self.constants.detected_os == os_data.os_data.ventura and self.constants.detected_os_minor >= 4) or self.constants.detected_os > os_data.os_data.ventura:
+                                self.amfi_shim_bins = True
                 elif gpu.arch in [
                     device_probe.NVIDIA.Archs.Fermi,
                     device_probe.NVIDIA.Archs.Kepler,
@@ -165,12 +165,12 @@ class DetectRootPatch:
                             # full compatibility (namely power states, etc)
                             # Reference: https://github.com/dortania/bugtracker/issues/292
                             # TODO: Probe framebuffer families further
-                            if self.model != "MacBookPro13,3":
-                                if "AVX2" in self.constants.computer.cpu.leafs:
-                                    continue
-                                self.legacy_polaris = True
-                            else:
+                            if self.model == "MacBookPro13,3":
                                 self.legacy_gcn = True
+                            elif "AVX2" in self.constants.computer.cpu.leafs:
+                                continue
+                            else:
+                                self.legacy_polaris = True
                         else:
                             self.legacy_gcn = True
                         self.supports_metal = True
@@ -248,9 +248,8 @@ class DetectRootPatch:
         if self.constants.detected_os <= os_data.os_data.monterey:
             # Always assume Root KC requirement on Monterey and older
             self.requires_root_kc = True
-        else:
-            if self.requires_root_kc is True:
-                self.missing_kdk = not self._check_kdk()
+        elif self.requires_root_kc is True:
+            self.missing_kdk = not self._check_kdk()
 
         self._check_networking_support()
 
@@ -311,12 +310,8 @@ class DetectRootPatch:
         Query whether system has an active dGPU
         """
 
-        dgpu = self.constants.computer.dgpu
-        if dgpu:
-            if dgpu.class_code and dgpu.class_code == 0xFFFFFFFF:
-                # If dGPU is disabled via class-codes, assume demuxed
-                return False
-            return True
+        if dgpu := self.constants.computer.dgpu:
+            return not dgpu.class_code or dgpu.class_code != 0xFFFFFFFF
         return False
 
 
@@ -327,7 +322,9 @@ class DetectRootPatch:
 
         # If GFX0 is missing, assume machine was demuxed
         # -wegnoegpu would also trigger this, so ensure arg is not present
-        if not "-wegnoegpu" in (utilities.get_nvram("boot-args", decode=True) or ""):
+        if "-wegnoegpu" not in (
+            utilities.get_nvram("boot-args", decode=True) or ""
+        ):
             igpu = self.constants.computer.igpu
             dgpu = self._check_dgpu_status()
             if igpu and not dgpu:
@@ -358,14 +355,10 @@ class DetectRootPatch:
             bool: True if property is present, False otherwise
         """
 
-        nv_on = utilities.get_nvram("boot-args", decode=True)
-        if nv_on:
+        if nv_on := utilities.get_nvram("boot-args", decode=True):
             if "nvda_drv_vrl=" in nv_on:
                 return True
-        nv_on = utilities.get_nvram("nvda_drv")
-        if nv_on:
-            return True
-        return False
+        return bool(nv_on := utilities.get_nvram("nvda_drv"))
 
 
     def _check_nv_web_opengl(self):
@@ -378,8 +371,7 @@ class DetectRootPatch:
             bool: True if property is present, False otherwise
         """
 
-        nv_on = utilities.get_nvram("boot-args", decode=True)
-        if nv_on:
+        if nv_on := utilities.get_nvram("boot-args", decode=True):
             if "ngfxgl=" in nv_on:
                 return True
         for gpu in self.constants.computer.gpus:
@@ -399,8 +391,7 @@ class DetectRootPatch:
             bool: True if property is present, False otherwise
         """
 
-        nv_on = utilities.get_nvram("boot-args", decode=True)
-        if nv_on:
+        if nv_on := utilities.get_nvram("boot-args", decode=True):
             if "ngfxcompat=" in nv_on:
                 return True
         for gpu in self.constants.computer.gpus:
@@ -479,27 +470,25 @@ class DetectRootPatch:
 
         # If we're on a hackintosh, check for UHCI/OHCI controllers
         if self.constants.host_is_hackintosh is True:
-            for controller in self.constants.computer.usb_controllers:
-                if (
-                    isinstance(controller, device_probe.UHCIController) or
-                    isinstance(controller, device_probe.OHCIController)
-                ):
-                    return True
-            return False
-
+            return any(
+                isinstance(
+                    controller,
+                    (device_probe.UHCIController, device_probe.OHCIController),
+                )
+                for controller in self.constants.computer.usb_controllers
+            )
         if self.model not in smbios_data.smbios_dictionary:
             return False
 
         # If we're on a Mac, check for Penryn or older
         # This is due to Apple implementing an internal USB hub on post-Penryn (excluding MacPro4,1 and MacPro5,1)
         # Ref: https://techcommunity.microsoft.com/t5/microsoft-usb-blog/reasons-to-avoid-companion-controllers/ba-p/270710
-        if (
-            smbios_data.smbios_dictionary[self.model]["CPU Generation"] <= cpu_data.CPUGen.penryn.value or \
-            self.model in ["MacPro4,1", "MacPro5,1"]
-        ):
-            return True
-
-        return False
+        return smbios_data.smbios_dictionary[self.model][
+            "CPU Generation"
+        ] <= cpu_data.CPUGen.penryn.value or self.model in [
+            "MacPro4,1",
+            "MacPro5,1",
+        ]
 
 
     # Entry point for patch set detection

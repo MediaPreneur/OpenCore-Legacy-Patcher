@@ -138,7 +138,11 @@ class macOSInstallerDownloadFrame(wx.Frame):
         subtitle_label.Centre(wx.HORIZONTAL)
 
         # List of installers
-        installers = self.available_installers_latest if show_full is False else self.available_installers
+        installers = (
+            self.available_installers_latest
+            if not show_full
+            else self.available_installers
+        )
         if installers:
             spacer = 0
             logging.info(f"Available installers on SUCatalog ({'All entries' if show_full else 'Latest only'}):")
@@ -153,7 +157,7 @@ class macOSInstallerDownloadFrame(wx.Frame):
 
                 # Since installers are sorted by version, set the latest installer as the default button
                 # Note that on full display, the last installer is generally a beta
-                if show_full is False and app == list(installers.keys())[-1]:
+                if not show_full and app == list(installers.keys())[-1]:
                     installer_button.SetDefault()
         else:
             logging.error("No installers found on SUCatalog")
@@ -162,7 +166,17 @@ class macOSInstallerDownloadFrame(wx.Frame):
             installer_button.Centre(wx.HORIZONTAL)
 
         # Show all available installers
-        show_all_button = wx.Button(dialog, label="Show all available installers" if show_full is False else "Show only latest installers", pos=(-1, installer_button.GetPosition()[1] + installer_button.GetSize()[1]), size=(200, 30))
+        show_all_button = wx.Button(
+            dialog,
+            label="Show all available installers"
+            if not show_full
+            else "Show only latest installers",
+            pos=(
+                -1,
+                installer_button.GetPosition()[1] + installer_button.GetSize()[1],
+            ),
+            size=(200, 30),
+        )
         show_all_button.Bind(wx.EVT_BUTTON, lambda event: self._display_available_installers(event, not show_full))
         show_all_button.Centre(wx.HORIZONTAL)
 
@@ -312,14 +326,18 @@ class macOSInstallerDownloadFrame(wx.Frame):
 
         progress_bar_animation.stop_pulse()
         progress_bar.Hide()
-        chunk_label.SetLabel("Successfully extracted macOS installer" if self.result is True else "Failed to extract macOS installer")
+        chunk_label.SetLabel(
+            "Successfully extracted macOS installer"
+            if self.result
+            else "Failed to extract macOS installer"
+        )
         chunk_label.Centre(wx.HORIZONTAL)
 
         # Create macOS Installer button
         create_installer_button = wx.Button(self, label="Create macOS Installer", pos=(-1, progress_bar.GetPosition()[1]), size=(170, 30))
         create_installer_button.Bind(wx.EVT_BUTTON, self.on_existing)
         create_installer_button.Centre(wx.HORIZONTAL)
-        if self.result is False:
+        if not self.result:
             create_installer_button.Disable()
 
         # Return to main menu button
@@ -333,7 +351,7 @@ class macOSInstallerDownloadFrame(wx.Frame):
         # Show frame
         self.Show()
 
-        if self.result is False:
+        if not self.result:
             wx.MessageBox("An error occurred while extracting the macOS installer. Could be due to a corrupted installer", "Error", wx.OK | wx.ICON_ERROR)
             return
 

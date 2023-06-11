@@ -45,8 +45,9 @@ class AutomaticSysPatch:
             logging.info("- Auto Patch option is not supported on TUI, please use GUI")
             return
 
-        dict = updates.CheckBinaryUpdates(self.constants).check_binary_updates()
-        if dict:
+        if dict := updates.CheckBinaryUpdates(
+            self.constants
+        ).check_binary_updates():
             for key in dict:
                 version = dict[key]["Version"]
             logging.info(f"- Found new version: {version}")
@@ -79,11 +80,13 @@ class AutomaticSysPatch:
                     return
 
                 logging.info("- Determined patching is possible, checking for OCLP updates")
-                patch_string = ""
-                for patch in patches:
-                    if patches[patch] is True and not patch.startswith("Settings") and not patch.startswith("Validation"):
-                        patch_string += f"- {patch}\n"
-
+                patch_string = "".join(
+                    f"- {patch}\n"
+                    for patch in patches
+                    if patches[patch] is True
+                    and not patch.startswith("Settings")
+                    and not patch.startswith("Validation")
+                )
                 logging.info("- No new binaries found on Github, proceeding with patching")
                 logging.info("- No new binaries found on Github, proceeding with patching")
                 if self.constants.launcher_script is None:

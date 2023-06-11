@@ -132,7 +132,7 @@ class InitializeLoggingSupport:
         for path in paths:
             result = subprocess.run(["chmod", "777", path], capture_output=True)
             if result.returncode != 0:
-                logging.error(f"Failed to fix log file permissions")
+                logging.error("Failed to fix log file permissions")
                 if result.stdout:
                     logging.error("STDOUT:")
                     logging.error(result.stdout.decode("utf-8"))
@@ -157,8 +157,10 @@ class InitializeLoggingSupport:
             level=logging.NOTSET,
             format="[%(asctime)s] [%(filename)-32s] [%(lineno)-4d]: %(message)s",
             handlers=[
-                logging.StreamHandler(stream = sys.stdout),
-                logging.FileHandler(self.log_filepath) if log_to_file is True else logging.NullHandler()
+                logging.StreamHandler(stream=sys.stdout),
+                logging.FileHandler(self.log_filepath)
+                if log_to_file
+                else logging.NullHandler(),
             ],
         )
         logging.getLogger().setLevel(logging.INFO)
@@ -234,7 +236,7 @@ class InitializeLoggingSupport:
             if self.constants.commit_info[0].startswith("refs/tags"):
                 cant_log = True
 
-            if cant_log is True:
+            if cant_log:
                 error_msg += "\n\nReveal log file?"
             else:
                 error_msg += "\n\nSend crash report to Dortania?"
@@ -249,11 +251,12 @@ class InitializeLoggingSupport:
             if result[applescript.AEType(b'bhit')] != "Yes":
                 return
 
-            if cant_log is True:
+            if cant_log:
                 subprocess.run(["open", "--reveal", self.log_filepath])
                 return
 
             threading.Thread(target=analytics_handler.Analytics(self.constants).send_crash_report, args=(self.log_filepath,)).start()
+
 
 
         def custom_thread_excepthook(args) -> None:

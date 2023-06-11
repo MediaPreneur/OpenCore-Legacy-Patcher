@@ -39,14 +39,14 @@ class SysPatchDisplayFrame(wx.Frame):
         self.frame_modal: wx.Dialog = None
         self.return_button: wx.Button = None
         self.available_patches: bool = False
-        self.init_with_parent = True if parent else False
+        self.init_with_parent = bool(parent)
 
         self.frame_modal = wx.Dialog(self.frame, title=title, size=(360, 200))
 
         self._generate_elements_display_patches(self.frame_modal)
 
-        if self.constants.update_stage != gui_support.AutoUpdateStages.INACTIVE:
-            if self.available_patches is False:
+        if not self.available_patches:
+            if self.constants.update_stage != gui_support.AutoUpdateStages.INACTIVE:
                 gui_support.RestartHost(self.frame).restart(message="No root patch updates needed!\n\nWould you like to reboot to apply the new OpenCore build?")
 
 
@@ -124,11 +124,11 @@ class SysPatchDisplayFrame(wx.Frame):
         else:
             # Add Label for each patch
             i = 0
-            if no_new_patches is True:
+            if no_new_patches:
                 patch_label = wx.StaticText(frame, label="All applicable patches already installed", pos=(-1, available_label.GetPosition()[1] + 20))
                 patch_label.SetFont(wx.Font(13, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, ".AppleSystemUIFont"))
                 patch_label.Centre(wx.HORIZONTAL)
-                i = i + 20
+                i += 20
             else:
                 longest_patch = ""
                 for patch in patches:
@@ -233,11 +233,11 @@ class SysPatchDisplayFrame(wx.Frame):
             self.available_patches = True
             if patches["Validation: Patching Possible"] is False:
                 start_button.Disable()
-            elif no_new_patches is False:
+            elif not no_new_patches:
                 start_button.SetDefault()
             else:
                 self.available_patches = False
-        if can_unpatch is False:
+        if not can_unpatch:
             revert_button.Disable()
 
         # Relaunch as root if not root

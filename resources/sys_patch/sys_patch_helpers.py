@@ -37,7 +37,7 @@ class SysPatchHelpers:
 
         """
 
-        source_files_path = str(source_files_path)
+        source_files_path = source_files_path
 
         if self.constants.computer.reported_board_id in self.constants.sandy_board_id_stock:
             return
@@ -57,7 +57,7 @@ class SysPatchHelpers:
             logging.info(f"Error: Board ID {self.constants.computer.reported_board_id} is longer than {board_to_patch}")
             raise Exception("Host's Board ID is longer than the kext's Board ID, cannot patch!!!")
 
-        path = source_files_path + "/10.13.6/System/Library/Extensions/AppleIntelSNBGraphicsFB.kext/Contents/MacOS/AppleIntelSNBGraphicsFB"
+        path = f"{source_files_path}/10.13.6/System/Library/Extensions/AppleIntelSNBGraphicsFB.kext/Contents/MacOS/AppleIntelSNBGraphicsFB"
         if not Path(path).exists():
             logging.info(f"Error: Could not find {path}")
             raise Exception("Failed to find AppleIntelSNBGraphicsFB.kext, cannot patch!!!")
@@ -86,10 +86,7 @@ class SysPatchHelpers:
         source_path = f"{self.constants.payload_path}"
         source_path_file = f"{source_path}/{file_name}"
 
-        kdk_string = "Not applicable"
-        if kdk_used:
-            kdk_string = kdk_used
-
+        kdk_string = kdk_used if kdk_used else "Not applicable"
         data = {
             "OpenCore Legacy Patcher": f"v{self.constants.patcher_version}",
             "PatcherSupportPkg": f"v{self.constants.patcher_support_pkg_version}",
@@ -97,21 +94,19 @@ class SysPatchHelpers:
             "Commit URL": f"{self.constants.commit_info[2]}",
             "Kernel Debug Kit Used": f"{kdk_string}",
             "OS Version": f"{self.constants.detected_os}.{self.constants.detected_os_minor} ({self.constants.detected_os_build})",
-            "Custom Signature": bool(Path(self.constants.payload_local_binaries_root_path / ".signed").exists()),
-        }
-
-        data.update(patchset)
-
+            "Custom Signature": bool(
+                Path(
+                    self.constants.payload_local_binaries_root_path / ".signed"
+                ).exists()
+            ),
+        } | patchset
         if Path(source_path_file).exists():
             os.remove(source_path_file)
 
         # Need to write to a safe location
         plistlib.dump(data, Path(source_path_file).open("wb"), sort_keys=False)
 
-        if Path(source_path_file).exists():
-            return True
-
-        return False
+        return bool(Path(source_path_file).exists())
 
 
     def disable_window_server_caching(self):
@@ -174,9 +169,9 @@ class SysPatchHelpers:
                         continue
                     sub_data = bplist.BPListReader(widget_data[entry]).parse()
                     for sub_entry in sub_data:
-                        if not '$object' in sub_entry:
+                        if '$object' not in sub_entry:
                             continue
-                        if not b'com.apple.news' in sub_data[sub_entry][2]:
+                        if b'com.apple.news' not in sub_data[sub_entry][2]:
                             continue
                         logging.info(f"- Found News Widget to remove: {sub_data[sub_entry][2].decode('ascii')}")
                         data["widgets"]["instances"].remove(widget)
@@ -262,7 +257,7 @@ class SysPatchHelpers:
             if not file.name.startswith("31001."):
                 continue
 
-            logging.info(f"Merging GPUCompiler.framework libraries to match binary")
+            logging.info("Merging GPUCompiler.framework libraries to match binary")
 
             src_dir = f"{LIBRARY_DIR}/{file.name}"
             if not Path(f"{DEST_DIR}/lib").exists():

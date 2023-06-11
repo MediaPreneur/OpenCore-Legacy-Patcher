@@ -63,8 +63,7 @@ class CreateBinary:
         parser.add_argument('--reset_binaries', action='store_true', help='Force redownload and imaging of payloads')
         parser.add_argument('--key', type=str, help='Developer key for signing')
         parser.add_argument('--site', type=str, help='Path to server')
-        args = parser.parse_args()
-        return args
+        return parser.parse_args()
 
 
     def _setup_pathing(self):
@@ -123,7 +122,7 @@ class CreateBinary:
         Build binary via pyinstaller
         """
 
-        if Path(f"./dist/OpenCore-Patcher.app").exists():
+        if Path("./dist/OpenCore-Patcher.app").exists():
             print("Found OpenCore-Patcher.app, removing...")
             rm_output = subprocess.run(
                 ["rm", "-rf", "./dist/OpenCore-Patcher.app"],

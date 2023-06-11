@@ -68,10 +68,7 @@ class NetworkUtilities:
         """
         try:
             response = SESSION.head(self.url, timeout=5, allow_redirects=True)
-            if response.status_code == 404:
-                return False
-            else:
-                return True
+            return response.status_code != 404
         except (
             requests.exceptions.Timeout,
             requests.exceptions.TooManyRedirects,
@@ -433,9 +430,7 @@ class DownloadObject:
             boolean: True if active, False if completed, failed, stopped, or inactive
         """
 
-        if self.status == DownloadStatus.DOWNLOADING:
-            return True
-        return False
+        return self.status == DownloadStatus.DOWNLOADING
 
 
     def stop(self) -> None:

@@ -9,7 +9,7 @@ from resources import network_handler, constants, global_settings
 DATE_FORMAT:      str = "%Y-%m-%d %H-%M-%S"
 ANALYTICS_SERVER: str = ""
 SITE_KEY:         str = ""
-CRASH_URL:        str = ANALYTICS_SERVER + "/crash"
+CRASH_URL: str = f"{ANALYTICS_SERVER}/crash"
 
 VALID_ANALYTICS_ENTRIES: dict = {
     'KEY':                 str,               # Prevent abuse (embedded at compile time)
@@ -40,11 +40,11 @@ class Analytics:
     def __init__(self, global_constants: constants.Constants) -> None:
         self.constants: constants.Constants = global_constants
         self.unique_identity = str(self.constants.computer.uuid_sha1)
-        self.application =     str("OpenCore Legacy Patcher")
+        self.application = "OpenCore Legacy Patcher"
         self.version =         str(self.constants.patcher_version)
         self.os =              str(self.constants.detected_os_version)
         self.model =           str(self.constants.computer.real_model)
-        self.date =            str(datetime.datetime.now().strftime(DATE_FORMAT))
+        self.date = datetime.datetime.now().strftime(DATE_FORMAT)
 
 
     def send_analytics(self) -> None:
@@ -94,10 +94,7 @@ class Analytics:
         except:
             return "US"
 
-        if "Country" not in result:
-            return "US"
-
-        return result["Country"]
+        return "US" if "Country" not in result else result["Country"]
 
 
     def _generate_base_data(self) -> None:
@@ -106,9 +103,7 @@ class Analytics:
         self.firmware = str(self.constants.computer.firmware_vendor)
         self.location = str(self._get_country())
 
-        for gpu in self.constants.computer.gpus:
-            self.gpus.append(str(gpu.arch))
-
+        self.gpus.extend(str(gpu.arch) for gpu in self.constants.computer.gpus)
         self.data = {
             'KEY':                 SITE_KEY,
             'UNIQUE_IDENTITY':     self.unique_identity,

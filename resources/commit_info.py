@@ -11,7 +11,7 @@ class ParseCommitInfo:
             binary_path (str): Path to binary
         """
 
-        self.binary_path = str(binary_path)
+        self.binary_path = binary_path
         self.plist_path = self._convert_binary_path_to_plist_path()
 
 

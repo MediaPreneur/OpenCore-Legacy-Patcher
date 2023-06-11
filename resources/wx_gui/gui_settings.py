@@ -203,11 +203,7 @@ class SettingsFrame(wx.Frame):
                 for i, line in enumerate(lines.split('\n')):
                     if line == "":
                         continue
-                    if i == 0:
-                        height += 11
-                    else:
-                        height += 13
-
+                    height += 11 if i == 0 else 13
                 if height > lowest_height_reached:
                     lowest_height_reached = height
 
@@ -233,7 +229,7 @@ class SettingsFrame(wx.Frame):
         socketed_imac_models = ["iMac9,1", "iMac10,1", "iMac11,1", "iMac11,2", "iMac11,3", "iMac12,1", "iMac12,2"]
         socketed_gpu_models = socketed_imac_models + ["MacPro3,1", "MacPro4,1", "MacPro5,1", "Xserve2,1", "Xserve3,1"]
 
-        settings = {
+        return {
             "Build": {
                 "General": {
                     "type": "title",
@@ -246,7 +242,11 @@ class SettingsFrame(wx.Frame):
                         "Enable booting macOS from",
                         "FireWire drives.",
                     ],
-                    "condition": not (generate_smbios.check_firewire(self.constants.custom_model or self.constants.computer.real_model) is False)
+                    "condition": generate_smbios.check_firewire(
+                        self.constants.custom_model
+                        or self.constants.computer.real_model
+                    )
+                    is not False,
                 },
                 "XHCI Booting": {
                     "type": "checkbox",
@@ -257,7 +257,11 @@ class SettingsFrame(wx.Frame):
                         "USB 3.0 expansion cards on systems",
                         "without native support.",
                     ],
-                    "condition": not gui_support.CheckProperties(self.constants).host_has_cpu_gen(cpu_data.CPUGen.ivy_bridge) # Sandy Bridge and older do not natively support XHCI booting
+                    "condition": not gui_support.CheckProperties(
+                        self.constants
+                    ).host_has_cpu_gen(
+                        cpu_data.CPUGen.ivy_bridge
+                    ),  # Sandy Bridge and older do not natively support XHCI booting
                 },
                 "NVMe Booting": {
                     "type": "checkbox",
@@ -270,7 +274,11 @@ class SettingsFrame(wx.Frame):
                         "Note: Requires Firmware support",
                         "for OpenCore to load from NVMe.",
                     ],
-                    "condition": not gui_support.CheckProperties(self.constants).host_has_cpu_gen(cpu_data.CPUGen.ivy_bridge) # Sandy Bridge and older do not natively support NVMe booting
+                    "condition": not gui_support.CheckProperties(
+                        self.constants
+                    ).host_has_cpu_gen(
+                        cpu_data.CPUGen.ivy_bridge
+                    ),  # Sandy Bridge and older do not natively support NVMe booting
                 },
                 "wrap_around 2": {
                     "type": "wrap_around",
@@ -291,7 +299,6 @@ class SettingsFrame(wx.Frame):
                         "Recommended for all users, however faulty",
                         "SSDs may benefit from disabling this.",
                     ],
-
                 },
                 "Show OpenCore Boot Picker": {
                     "type": "checkbox",
@@ -311,14 +318,12 @@ class SettingsFrame(wx.Frame):
                         "entry in seconds.",
                         "Set to 0 for no timeout.",
                     ],
-
                     "min": 0,
                     "max": 60,
                 },
                 "Debug": {
                     "type": "title",
                 },
-
                 "Verbose": {
                     "type": "checkbox",
                     "value": self.constants.verbose_debug,
@@ -326,7 +331,6 @@ class SettingsFrame(wx.Frame):
                     "description": [
                         "Verbose output during boot.",
                     ],
-
                 },
                 "Kext Debugging": {
                     "type": "checkbox",
@@ -374,7 +378,13 @@ class SettingsFrame(wx.Frame):
                         "For MacBookPro11,x with faulty",
                         "PCHs that may crash sporadically.",
                     ],
-                    "condition": (self.constants.custom_model and self.constants.custom_model in ["MacBookPro11,1", "MacBookPro11,2", "MacBookPro11,3"]) or self.constants.computer.real_model in ["MacBookPro11,1", "MacBookPro11,2", "MacBookPro11,3"]
+                    "condition": (
+                        self.constants.custom_model
+                        and self.constants.custom_model
+                        in ["MacBookPro11,1", "MacBookPro11,2", "MacBookPro11,3"]
+                    )
+                    or self.constants.computer.real_model
+                    in ["MacBookPro11,1", "MacBookPro11,2", "MacBookPro11,3"],
                 },
                 "Windows GMUX": {
                     "type": "checkbox",
@@ -418,7 +428,6 @@ class SettingsFrame(wx.Frame):
                         "degraded NVRAM.",
                     ],
                 },
-
                 "3rd Party NVMe PM": {
                     "type": "checkbox",
                     "value": self.constants.allow_nvme_fixing,
@@ -436,7 +445,10 @@ class SettingsFrame(wx.Frame):
                         "Enable non-stock SATA power",
                         "management in macOS.",
                     ],
-                    "condition": not bool(self.constants.computer.third_party_sata_ssd is False and not self.constants.custom_model)
+                    "condition": bool(
+                        self.constants.computer.third_party_sata_ssd is not False
+                        or self.constants.custom_model
+                    ),
                 },
             },
             "Advanced": {
@@ -465,7 +477,18 @@ class SettingsFrame(wx.Frame):
                         "'gpu-power-prefs'.",
                     ],
                     "warning": "This settings requires 'gpu-power-prefs' NVRAM argument to be set to '1'.\n\nIf missing and this option is toggled, the system will not boot\n\nFull command:\nnvram FA4CE28D-B62F-4C99-9CC3-6815686E30F9:gpu-power-prefs=%01%00%00%00",
-                    "condition": not bool((not self.constants.custom_model and self.constants.computer.real_model not in ["MacBookPro8,2", "MacBookPro8,3"]) or (self.constants.custom_model and self.constants.custom_model not in ["MacBookPro8,2", "MacBookPro8,3"]))
+                    "condition": not bool(
+                        (
+                            not self.constants.custom_model
+                            and self.constants.computer.real_model
+                            not in ["MacBookPro8,2", "MacBookPro8,3"]
+                        )
+                        or (
+                            self.constants.custom_model
+                            and self.constants.custom_model
+                            not in ["MacBookPro8,2", "MacBookPro8,3"]
+                        )
+                    ),
                 },
                 "wrap_around 1": {
                     "type": "wrap_around",
@@ -512,7 +535,18 @@ class SettingsFrame(wx.Frame):
                         "Inject AMD GOP for boot screen",
                         "support on PC GPUs.",
                     ],
-                    "condition": not bool((not self.constants.custom_model and self.constants.computer.real_model not in socketed_gpu_models) or (self.constants.custom_model and self.constants.custom_model not in socketed_gpu_models))
+                    "condition": not bool(
+                        (
+                            not self.constants.custom_model
+                            and self.constants.computer.real_model
+                            not in socketed_gpu_models
+                        )
+                        or (
+                            self.constants.custom_model
+                            and self.constants.custom_model
+                            not in socketed_gpu_models
+                        )
+                    ),
                 },
                 "Nvidia GOP Injection": {
                     "type": "checkbox",
@@ -522,7 +556,18 @@ class SettingsFrame(wx.Frame):
                         "Inject Nvidia Kepler GOP for boot",
                         "screen support on PC GPUs.",
                     ],
-                    "condition": not bool((not self.constants.custom_model and self.constants.computer.real_model not in socketed_gpu_models) or (self.constants.custom_model and self.constants.custom_model not in socketed_gpu_models))
+                    "condition": not bool(
+                        (
+                            not self.constants.custom_model
+                            and self.constants.computer.real_model
+                            not in socketed_gpu_models
+                        )
+                        or (
+                            self.constants.custom_model
+                            and self.constants.custom_model
+                            not in socketed_gpu_models
+                        )
+                    ),
                 },
                 "wrap_around 2": {
                     "type": "wrap_around",
@@ -543,14 +588,23 @@ class SettingsFrame(wx.Frame):
                         "Override detected/assumed GPU on",
                         "socketed MXM-based iMacs.",
                     ],
-                    "condition": bool((not self.constants.custom_model and self.constants.computer.real_model in socketed_imac_models) or (self.constants.custom_model and self.constants.custom_model in socketed_imac_models))
+                    "condition": bool(
+                        (
+                            not self.constants.custom_model
+                            and self.constants.computer.real_model
+                            in socketed_imac_models
+                        )
+                        or (
+                            self.constants.custom_model
+                            and self.constants.custom_model in socketed_imac_models
+                        )
+                    ),
                 },
                 "Populate Graphics Override": {
                     "type": "populate",
                     "function": self._populate_graphics_override,
                     "args": wx.Frame,
                 },
-
             },
             "Security": {
                 "Kernel Security": {
@@ -620,7 +674,6 @@ class SettingsFrame(wx.Frame):
                         "   - Advanced: Overrides Model and serial.",
                     ],
                 },
-
                 "SMBIOS Spoof Model": {
                     "type": "choice",
                     "choices": models + ["Default"],
@@ -629,7 +682,6 @@ class SettingsFrame(wx.Frame):
                     "description": [
                         "Set Mac Model to spoof to.",
                     ],
-
                 },
                 "wrap_around 1": {
                     "type": "wrap_around",
@@ -660,7 +712,10 @@ class SettingsFrame(wx.Frame):
                 },
                 "TeraScale 2 Acceleration": {
                     "type": "checkbox",
-                    "value": global_settings.GlobalEnviromentSettings().read_property("MacBookPro_TeraScale_2_Accel") or self.constants.allow_ts2_accel,
+                    "value": global_settings.GlobalEnviromentSettings().read_property(
+                        "MacBookPro_TeraScale_2_Accel"
+                    )
+                    or self.constants.allow_ts2_accel,
                     "variable": "MacBookPro_TeraScale_2_Accel",
                     "constants_variable": "allow_ts2_accel",
                     "description": [
@@ -670,14 +725,18 @@ class SettingsFrame(wx.Frame):
                         "By default this is disabled due to",
                         "common GPU failures on these models.",
                     ],
-                    "condition": not bool(self.constants.computer.real_model not in ["MacBookPro8,2", "MacBookPro8,3"])
+                    "condition": self.constants.computer.real_model
+                    in ["MacBookPro8,2", "MacBookPro8,3"],
                 },
                 "wrap_around 1": {
                     "type": "wrap_around",
                 },
                 "Disable ColorSync Downgrade": {
                     "type": "checkbox",
-                    "value": global_settings.GlobalEnviromentSettings().read_property("Disable_ColorSync_Downgrade") or self.constants.disable_cat_colorsync,
+                    "value": global_settings.GlobalEnviromentSettings().read_property(
+                        "Disable_ColorSync_Downgrade"
+                    )
+                    or self.constants.disable_cat_colorsync,
                     "variable": "Disable_ColorSync_Downgrade",
                     "constants_variable": "disable_cat_colorsync",
                     "description": [
@@ -685,7 +744,15 @@ class SettingsFrame(wx.Frame):
                         "on HD3000 GPUs in Ventura and newer.",
                         "Note: Disabling can cause UI corruption.",
                     ],
-                    "condition": not bool(self.constants.computer.real_model not in ["MacBookAir4,1","MacBookAir4,2","MacBookPro8,1","MacBookPro8,2","MacBookPro8,3","Macmini5,1"])
+                    "condition": self.constants.computer.real_model
+                    in [
+                        "MacBookAir4,1",
+                        "MacBookAir4,2",
+                        "MacBookPro8,1",
+                        "MacBookPro8,2",
+                        "MacBookPro8,3",
+                        "Macmini5,1",
+                    ],
                 },
                 "Non-Metal Configuration": {
                     "type": "title",
@@ -703,7 +770,9 @@ class SettingsFrame(wx.Frame):
                         "change as needed.",
                     ],
                     "override_function": self._update_system_defaults,
-                    "condition": gui_support.CheckProperties(self.constants).host_is_non_metal(general_check=True)
+                    "condition": gui_support.CheckProperties(
+                        self.constants
+                    ).host_is_non_metal(general_check=True),
                 },
                 "Beta Blur": {
                     "type": "checkbox",
@@ -713,8 +782,9 @@ class SettingsFrame(wx.Frame):
                         "Control window blur behaviour.",
                     ],
                     "override_function": self._update_system_defaults,
-                    "condition": gui_support.CheckProperties(self.constants).host_is_non_metal(general_check=True)
-
+                    "condition": gui_support.CheckProperties(
+                        self.constants
+                    ).host_is_non_metal(general_check=True),
                 },
                 "Beach Ball Cursor Workaround": {
                     "type": "checkbox",
@@ -724,7 +794,9 @@ class SettingsFrame(wx.Frame):
                         "Note: May be more CPU intensive.",
                     ],
                     "override_function": self._update_system_defaults,
-                    "condition": gui_support.CheckProperties(self.constants).host_is_non_metal(general_check=True)
+                    "condition": gui_support.CheckProperties(
+                        self.constants
+                    ).host_is_non_metal(general_check=True),
                 },
                 "wrap_around 2": {
                     "type": "wrap_around",
@@ -740,7 +812,9 @@ class SettingsFrame(wx.Frame):
                         "disable this setting.",
                     ],
                     "override_function": self._update_system_defaults,
-                    "condition": gui_support.CheckProperties(self.constants).host_is_non_metal(general_check=True)
+                    "condition": gui_support.CheckProperties(
+                        self.constants
+                    ).host_is_non_metal(general_check=True),
                 },
                 "Disable Beta Rim": {
                     "type": "checkbox",
@@ -750,7 +824,9 @@ class SettingsFrame(wx.Frame):
                         "Control Window Rim rendering.",
                     ],
                     "override_function": self._update_system_defaults,
-                    "condition": gui_support.CheckProperties(self.constants).host_is_non_metal(general_check=True)
+                    "condition": gui_support.CheckProperties(
+                        self.constants
+                    ).host_is_non_metal(general_check=True),
                 },
             },
             "App": {
@@ -772,7 +848,10 @@ class SettingsFrame(wx.Frame):
                 },
                 "Ignore App Updates": {
                     "type": "checkbox",
-                    "value": global_settings.GlobalEnviromentSettings().read_property("IgnoreAppUpdates") or self.constants.ignore_updates,
+                    "value": global_settings.GlobalEnviromentSettings().read_property(
+                        "IgnoreAppUpdates"
+                    )
+                    or self.constants.ignore_updates,
                     "variable": "IgnoreAppUpdates",
                     "constants_variable": "ignore_updates",
                     "description": [
@@ -785,7 +864,9 @@ class SettingsFrame(wx.Frame):
                 },
                 "Disable Reporting": {
                     "type": "checkbox",
-                    "value": global_settings.GlobalEnviromentSettings().read_property("DisableCrashAndAnalyticsReporting"),
+                    "value": global_settings.GlobalEnviromentSettings().read_property(
+                        "DisableCrashAndAnalyticsReporting"
+                    ),
                     "variable": "DisableCrashAndAnalyticsReporting",
                     "description": [
                         "When enabled, patcher will not",
@@ -795,7 +876,10 @@ class SettingsFrame(wx.Frame):
                 },
                 "Remove Unused KDKs": {
                     "type": "checkbox",
-                    "value": global_settings.GlobalEnviromentSettings().read_property("ShouldNukeKDKs") or self.constants.should_nuke_kdks,
+                    "value": global_settings.GlobalEnviromentSettings().read_property(
+                        "ShouldNukeKDKs"
+                    )
+                    or self.constants.should_nuke_kdks,
                     "variable": "ShouldNukeKDKs",
                     "constants_variable": "should_nuke_kdks",
                     "description": [
@@ -827,8 +911,7 @@ class SettingsFrame(wx.Frame):
                 "Trigger Exception": {
                     "type": "button",
                     "function": self.on_test_exception,
-                    "description": [
-                    ],
+                    "description": [],
                 },
                 "wrap_around 1": {
                     "type": "wrap_around",
@@ -842,8 +925,6 @@ class SettingsFrame(wx.Frame):
                 },
             },
         }
-
-        return settings
 
 
     def on_model_choice(self, event: wx.Event, model_choice: wx.Choice) -> None:
@@ -881,14 +962,14 @@ class SettingsFrame(wx.Frame):
 
         horizontal_spacer = 250
 
-        # Look for title on frame
-        sip_title: wx.StaticText = None
-        for child in panel.GetChildren():
-            if child.GetLabel() == "System Integrity Protection":
-                sip_title = child
-                break
-
-
+        sip_title: wx.StaticText = next(
+            (
+                child
+                for child in panel.GetChildren()
+                if child.GetLabel() == "System Integrity Protection"
+            ),
+            None,
+        )
         # Label: Flip individual bits corresponding to XNU's csr.h
         # If you're unfamiliar with how SIP works, do not touch this menu
         sip_label = wx.StaticText(panel, label="Flip individual bits corresponding to", pos=(sip_title.GetPosition()[0] - 20, sip_title.GetPosition()[1] + 30))
@@ -922,8 +1003,7 @@ class SettingsFrame(wx.Frame):
         entries_per_row = len(sip_data.system_integrity_protection.csr_values) // 2
         horizontal_spacer = 15
         vertical_spacer = 25
-        index = 1
-        for sip_bit in sip_data.system_integrity_protection.csr_values_extended:
+        for index, sip_bit in enumerate(sip_data.system_integrity_protection.csr_values_extended, start=1):
             self.sip_checkbox = wx.CheckBox(panel, label=sip_data.system_integrity_protection.csr_values_extended[sip_bit]["name"].split("CSR_")[1], pos = (vertical_spacer, sip_booted_label.GetPosition()[1] + 20 + horizontal_spacer))
             self.sip_checkbox.SetFont(wx.Font(13, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, ".AppleSystemUIFont"))
             self.sip_checkbox.SetToolTip(f'Description: {sip_data.system_integrity_protection.csr_values_extended[sip_bit]["description"]}\nValue: {hex(sip_data.system_integrity_protection.csr_values_extended[sip_bit]["value"])}\nIntroduced in: macOS {sip_data.system_integrity_protection.csr_values_extended[sip_bit]["introduced_friendly"]}')
@@ -936,17 +1016,18 @@ class SettingsFrame(wx.Frame):
                 horizontal_spacer = 20
                 vertical_spacer += 250
 
-            index += 1
             self.sip_checkbox.Bind(wx.EVT_CHECKBOX, self.on_sip_value)
 
 
     def _populate_serial_spoofing_settings(self, panel: wx.Frame) -> None:
-        title: wx.StaticText = None
-        for child in panel.GetChildren():
-            if child.GetLabel() == "Serial Spoofing":
-                title = child
-                break
-
+        title: wx.StaticText = next(
+            (
+                child
+                for child in panel.GetChildren()
+                if child.GetLabel() == "Serial Spoofing"
+            ),
+            None,
+        )
         # Label: Custom Serial Number
         custom_serial_number_label = wx.StaticText(panel, label="Custom Serial Number", pos=(title.GetPosition()[0] - 150, title.GetPosition()[1] + 30))
         custom_serial_number_label.SetFont(wx.Font(13, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD, False, ".AppleSystemUIFont"))
@@ -978,12 +1059,14 @@ class SettingsFrame(wx.Frame):
 
 
     def _populate_app_stats(self, panel: wx.Frame) -> None:
-        title: wx.StaticText = None
-        for child in panel.GetChildren():
-            if child.GetLabel() == "Statistics":
-                title = child
-                break
-
+        title: wx.StaticText = next(
+            (
+                child
+                for child in panel.GetChildren()
+                if child.GetLabel() == "Statistics"
+            ),
+            None,
+        )
         lines = f"""Application Information:
     Application Version: {self.constants.patcher_version}
     PatcherSupportPkg Version: {self.constants.patcher_support_pkg_version}
@@ -1029,7 +1112,7 @@ Hardware Information:
                         if dlg.ShowModal() == wx.ID_NO:
                             event.GetEventObject().SetValue(not event.GetEventObject().GetValue())
                             return
-        if override_function is True:
+        if override_function:
             self.settings[self._find_parent_for_key(label)][label]["override_function"](self.settings[self._find_parent_for_key(label)][label]["variable"], value, self.settings[self._find_parent_for_key(label)][label]["constants_variable"] if "constants_variable" in self.settings[self._find_parent_for_key(label)][label] else None)
             return
 
@@ -1130,12 +1213,14 @@ Hardware Information:
 
 
     def _populate_fu_override(self, panel: wx.Panel) -> None:
-        gpu_combo_box: wx.Choice = None
-        for child in panel.GetChildren():
-            if isinstance(child, wx.Choice):
-                gpu_combo_box = child
-                break
-
+        gpu_combo_box: wx.Choice = next(
+            (
+                child
+                for child in panel.GetChildren()
+                if isinstance(child, wx.Choice)
+            ),
+            None,
+        )
         gpu_combo_box.Bind(wx.EVT_CHOICE, self.fu_selection_click)
         if self.constants.fu_status is False:
             gpu_combo_box.SetStringSelection("Disabled")

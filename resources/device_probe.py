@@ -85,10 +85,20 @@ class PCIDevice:
         return device
 
     def vendor_detect(self, *, inherits: ClassVar[Any] = None, classes: list = None):
-        for i in classes or itertools.chain.from_iterable([subclass.__subclasses__() for subclass in PCIDevice.__subclasses__()]):
-            if issubclass(i, inherits or object) and i.detect(self):
-                return i
-        return None
+        return next(
+            (
+                i
+                for i in classes
+                or itertools.chain.from_iterable(
+                    [
+                        subclass.__subclasses__()
+                        for subclass in PCIDevice.__subclasses__()
+                    ]
+                )
+                if issubclass(i, inherits or object) and i.detect(self)
+            ),
+            None,
+        )
 
     @classmethod
     def detect(cls, device):
@@ -110,9 +120,7 @@ class PCIDevice:
             elif ioreg.IOObjectConformsTo(entry, "IOACPIPlatformDevice".encode()):
                 paths.append(f"PciRoot({hex(int(ioreg.corefoundation_to_native(ioreg.IORegistryEntryCreateCFProperty(entry, '_UID', ioreg.kCFAllocatorDefault, ioreg.kNilOptions)) or 0))})")  # type: ignore
                 break
-            elif ioreg.IOObjectConformsTo(entry, "IOPCIBridge".encode()):
-                pass
-            else:
+            elif not ioreg.IOObjectConformsTo(entry, "IOPCIBridge".encode()):
                 # There's something in between that's not PCI! Abort
                 paths = []
                 break
@@ -152,8 +160,14 @@ class WirelessCard(PCIDevice):
             "IOProviderClass": "IO80211Interface",
         }
 
-        interface = next(ioreg.ioiterator_to_list(ioreg.IOServiceGetMatchingServices(ioreg.kIOMasterPortDefault, matching_dict, None)[1]), None)
-        if interface:
+        if interface := next(
+            ioreg.ioiterator_to_list(
+                ioreg.IOServiceGetMatchingServices(
+                    ioreg.kIOMasterPortDefault, matching_dict, None
+                )[1]
+            ),
+            None,
+        ):
             device.country_code = ioreg.corefoundation_to_native(ioreg.IORegistryEntryCreateCFProperty(interface, "IO80211CountryCode", ioreg.kCFAllocatorDefault, ioreg.kNilOptions))  # type: ignore # If not present, will be None anyways
         else:
             device.country_code = None  # type: ignore
@@ -545,8 +559,9 @@ class Computer:
         )
 
         for device in devices:
-            vendor: Type[GPU] = PCIDevice.from_ioregistry(device).vendor_detect(inherits=GPU)  # type: ignore
-            if vendor:
+            if vendor := PCIDevice.from_ioregistry(device).vendor_detect(
+                inherits=GPU
+            ):
                 self.gpus.append(vendor.from_ioregistry(device))  # type: ignore
             ioreg.IOObjectRelease(device)
 
@@ -556,8 +571,7 @@ class Computer:
             # No devices
             return
 
-        vendor: Type[GPU] = PCIDevice.from_ioregistry(device).vendor_detect(inherits=GPU)  # type: ignore
-        if vendor:
+        if vendor := PCIDevice.from_ioregistry(device).vendor_detect(inherits=GPU):
             self.dgpu = vendor.from_ioregistry(device)  # type: ignore
         ioreg.IOObjectRelease(device)
 
@@ -567,8 +581,7 @@ class Computer:
             # No devices
             return
 
-        vendor: Type[GPU] = PCIDevice.from_ioregistry(device).vendor_detect(inherits=GPU)  # type: ignore
-        if vendor:
+        if vendor := PCIDevice.from_ioregistry(device).vendor_detect(inherits=GPU):
             self.igpu = vendor.from_ioregistry(device)  # type: ignore
         ioreg.IOObjectRelease(device)
 
@@ -582,15 +595,24 @@ class Computer:
         )
 
         for device in devices:
-            vendor: Type[WirelessCard] = PCIDevice.from_ioregistry(device, anti_spoof=True).vendor_detect(inherits=WirelessCard)  # type: ignore
-            if vendor:
+            if vendor := PCIDevice.from_ioregistry(
+                device, anti_spoof=True
+            ).vendor_detect(inherits=WirelessCard):
                 self.wifi = vendor.from_ioregistry(device, anti_spoof=True)  # type: ignore
                 break
             ioreg.IOObjectRelease(device)
 
     def ambient_light_sensor_probe(self):
-        device = next(ioreg.ioiterator_to_list(ioreg.IOServiceGetMatchingServices(ioreg.kIOMasterPortDefault, ioreg.IOServiceNameMatching("ALS0".encode()), None)[1]), None)
-        if device:
+        if device := next(
+            ioreg.ioiterator_to_list(
+                ioreg.IOServiceGetMatchingServices(
+                    ioreg.kIOMasterPortDefault,
+                    ioreg.IOServiceNameMatching("ALS0".encode()),
+                    None,
+                )[1]
+            ),
+            None,
+        ):
             self.ambient_light_sensor = True
             ioreg.IOObjectRelease(device)
 
@@ -660,8 +682,9 @@ class Computer:
         )
 
         for device in ethernet_controllers:
-            vendor: Type[EthernetController] = PCIDevice.from_ioregistry(device).vendor_detect(inherits=EthernetController)  # type: ignore
-            if vendor:
+            if vendor := PCIDevice.from_ioregistry(device).vendor_detect(
+                inherits=EthernetController
+            ):
                 self.ethernet.append(vendor.from_ioregistry(device))  # type: ignore
             ioreg.IOObjectRelease(device)
 
@@ -716,10 +739,7 @@ class Computer:
         entry = next(ioreg.ioiterator_to_list(ioreg.IOServiceGetMatchingServices(ioreg.kIOMasterPortDefault, ioreg.IOServiceMatching("IOPlatformExpertDevice".encode()), None)[1]))
         self.reported_model = ioreg.corefoundation_to_native(ioreg.IORegistryEntryCreateCFProperty(entry, "model", ioreg.kCFAllocatorDefault, ioreg.kNilOptions)).strip(b"\0").decode()  # type: ignore
         translated = subprocess.run("sysctl -in sysctl.proc_translated".split(), stdout=subprocess.PIPE).stdout.decode()
-        if translated:
-            board = "target-type"
-        else:
-            board = "board-id"
+        board = "target-type" if translated else "board-id"
         self.reported_board_id = ioreg.corefoundation_to_native(ioreg.IORegistryEntryCreateCFProperty(entry, board, ioreg.kCFAllocatorDefault, ioreg.kNilOptions)).strip(b"\0").decode()  # type: ignore
         self.uuid_sha1 = ioreg.corefoundation_to_native(ioreg.IORegistryEntryCreateCFProperty(entry, "IOPlatformUUID", ioreg.kCFAllocatorDefault, ioreg.kNilOptions))  # type: ignore
         self.uuid_sha1 = hashlib.sha1(self.uuid_sha1.encode()).hexdigest()
@@ -753,11 +773,11 @@ class Computer:
         )
 
     def cpu_get_leafs(self):
-        leafs = []
         result = subprocess.run("sysctl machdep.cpu.leaf7_features".split(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         if result.returncode == 0:
             return result.stdout.decode().partition(": ")[2].strip().split(" ")
-        return leafs
+        else:
+            return []
 
     def bluetooth_probe(self):
         usb_data: str = subprocess.run("system_profiler SPUSBDataType".split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout.decode()
@@ -775,7 +795,15 @@ class Computer:
     def sata_disk_probe(self):
         # Get all SATA Controllers/Disks from 'system_profiler SPSerialATADataType'
         # Determine whether SATA SSD is present and Apple-made
-        sp_sata_data = plistlib.loads(subprocess.run(f"system_profiler SPSerialATADataType -xml".split(), stdout=subprocess.PIPE).stdout.decode().strip().encode())
+        sp_sata_data = plistlib.loads(
+            subprocess.run(
+                "system_profiler SPSerialATADataType -xml".split(),
+                stdout=subprocess.PIPE,
+            )
+            .stdout.decode()
+            .strip()
+            .encode()
+        )
         for root in sp_sata_data:
             for ahci_controller in root["_items"]:
                 # Each AHCI controller will have its own entry
@@ -797,8 +825,7 @@ class Computer:
     def oclp_sys_patch_probe(self):
         path = Path("/System/Library/CoreServices/OpenCore-Legacy-Patcher.plist")
         if path.exists():
-            sys_plist = plistlib.load(path.open("rb"))
-            if sys_plist:
+            if sys_plist := plistlib.load(path.open("rb")):
                 if "OpenCore Legacy Patcher" in sys_plist:
                     self.oclp_sys_version = sys_plist["OpenCore Legacy Patcher"]
                 if "Time Patched" in sys_plist:
@@ -808,7 +835,4 @@ class Computer:
 
     def check_rosetta(self):
         result = subprocess.run("sysctl -in sysctl.proc_translated".split(), stdout=subprocess.PIPE).stdout.decode()
-        if result:
-            self.rosetta_active = True
-        else:
-            self.rosetta_active = False
+        self.rosetta_active = bool(result)

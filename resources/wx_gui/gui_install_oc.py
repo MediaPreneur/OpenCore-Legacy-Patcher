@@ -302,9 +302,8 @@ class InstallOCFrame(wx.Frame):
                     wx.OK
                 )
                 popup_message.ShowModal()
-        else:
-            if self.constants.update_stage != gui_support.AutoUpdateStages.INACTIVE:
-                self.constants.update_stage = gui_support.AutoUpdateStages.FINISHED
+        elif self.constants.update_stage != gui_support.AutoUpdateStages.INACTIVE:
+            self.constants.update_stage = gui_support.AutoUpdateStages.FINISHED
 
 
     def _install_oc(self, partition: dict) -> None:

@@ -57,7 +57,9 @@ class BuildWirelessNetworking:
                     self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += f" brcmfx-country={self.computer.wifi.country_code}"
                 if self.constants.enable_wake_on_wlan is True:
                     logging.info("- Enabling Wake on WLAN support")
-                    self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += f" -brcmfxwowl"
+                    self.config["NVRAM"]["Add"][
+                        "7C436110-AB2A-4BBB-A880-FE41995C9F82"
+                    ]["boot-args"] += " -brcmfxwowl"
             elif self.computer.wifi.chipset == device_probe.Broadcom.Chipsets.AirPortBrcm4360:
                 self._wifi_fake_id()
             elif self.computer.wifi.chipset == device_probe.Broadcom.Chipsets.AirPortBrcm4331:
@@ -79,9 +81,9 @@ class BuildWirelessNetworking:
         Fall back to pre-built assumptions
         """
 
-        if not self.model in smbios_data.smbios_dictionary:
+        if self.model not in smbios_data.smbios_dictionary:
             return
-        if not "Wireless Model" in smbios_data.smbios_dictionary[self.model]:
+        if "Wireless Model" not in smbios_data.smbios_dictionary[self.model]:
             return
         if smbios_data.smbios_dictionary[self.model]["Wireless Model"] == device_probe.Broadcom.Chipsets.AirPortBrcm4360:
             logging.info("- Enabling BCM943224 and BCM94331 Networking Support")
@@ -119,7 +121,9 @@ class BuildWirelessNetworking:
             return
 
         logging.info("- Enabling Wake on WLAN support")
-        self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"]["boot-args"] += f" -brcmfxwowl"
+        self.config["NVRAM"]["Add"]["7C436110-AB2A-4BBB-A880-FE41995C9F82"][
+            "boot-args"
+        ] += " -brcmfxwowl"
 
 
     def _wifi_fake_id(self) -> None:
@@ -136,23 +140,22 @@ class BuildWirelessNetworking:
             arpt_path = self.computer.wifi.pci_path
             logging.info(f"- Found ARPT device at {arpt_path}")
         else:
-            if not self.model in smbios_data.smbios_dictionary:
+            if self.model not in smbios_data.smbios_dictionary:
                 logging.info("No known PCI pathing for this model")
                 return
             if "nForce Chipset" in smbios_data.smbios_dictionary[self.model]:
                 # Nvidia chipsets all have the same path to ARPT
                 arpt_path = "PciRoot(0x0)/Pci(0x15,0x0)/Pci(0x0,0x0)"
+            elif self.model in ("iMac7,1", "iMac8,1", "MacPro3,1", "MacBookPro4,1"):
+                arpt_path = "PciRoot(0x0)/Pci(0x1C,0x4)/Pci(0x0,0x0)"
+            elif self.model in ("iMac13,1", "iMac13,2"):
+                arpt_path = "PciRoot(0x0)/Pci(0x1C,0x3)/Pci(0x0,0x0)"
+            elif self.model in ("MacPro4,1", "MacPro5,1"):
+                arpt_path = "PciRoot(0x0)/Pci(0x1C,0x5)/Pci(0x0,0x0)"
             else:
-                if self.model in ("iMac7,1", "iMac8,1", "MacPro3,1", "MacBookPro4,1"):
-                    arpt_path = "PciRoot(0x0)/Pci(0x1C,0x4)/Pci(0x0,0x0)"
-                elif self.model in ("iMac13,1", "iMac13,2"):
-                    arpt_path = "PciRoot(0x0)/Pci(0x1C,0x3)/Pci(0x0,0x0)"
-                elif self.model in ("MacPro4,1", "MacPro5,1"):
-                    arpt_path = "PciRoot(0x0)/Pci(0x1C,0x5)/Pci(0x0,0x0)"
-                else:
-                    # Assumes we have a laptop with Intel chipset
-                    # iMac11,x-12,x also apply
-                    arpt_path = "PciRoot(0x0)/Pci(0x1C,0x1)/Pci(0x0,0x0)"
+                # Assumes we have a laptop with Intel chipset
+                # iMac11,x-12,x also apply
+                arpt_path = "PciRoot(0x0)/Pci(0x1C,0x1)/Pci(0x0,0x0)"
             logging.info(f"- Using known ARPT Path: {arpt_path}")
 
         if not self.constants.custom_model and self.computer.wifi and self.constants.validate is False and self.computer.wifi.country_code:

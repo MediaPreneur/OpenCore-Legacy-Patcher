@@ -95,21 +95,9 @@ class arguments:
         logging.info("Set OpenCore Build")
 
         if self.args.model:
-            if self.args.model:
-                logging.info(f"- Using custom model: {self.args.model}")
-                self.constants.custom_model = self.args.model
-                defaults.GenerateDefaults(self.constants.custom_model, False, self.constants)
-            elif self.constants.computer.real_model not in model_array.SupportedSMBIOS and self.constants.allow_oc_everywhere is False:
-                logging.info(
-                    """Your model is not supported by this patcher for running unsupported OSes!"
-
-If you plan to create the USB for another machine, please select the "Change Model" option in the menu."""
-                )
-                sys.exit(1)
-            else:
-                logging.info(f"- Using detected model: {self.constants.computer.real_model}")
-                defaults.GenerateDefaults(self.constants.custom_model, True, self.constants)
-
+            logging.info(f"- Using custom model: {self.args.model}")
+            self.constants.custom_model = self.args.model
+            defaults.GenerateDefaults(self.constants.custom_model, False, self.constants)
         if self.args.verbose:
             logging.info("- Set verbose configuration")
             self.constants.verbose_debug = True

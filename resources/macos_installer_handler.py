@@ -154,9 +154,7 @@ if $erase_disk; then
     "{createinstallmedia_path}" --volume /Volumes/OCLP-Installer --nointeraction{additional_args}
 fi
             ''')
-        if Path(script_location).exists():
-            return True
-        return False
+        return bool(Path(script_location).exists())
 
 
     def list_disk_to_format(self) -> dict:
@@ -192,23 +190,19 @@ fi
                 # Avoid crashing with CDs installed
                 continue
 
-        for disk in all_disks:
+        for disk, value in all_disks.items():
             # Strip disks that are under 14GB (15,032,385,536 bytes)
             # createinstallmedia isn't great at detecting if a disk has enough space
-            if not any(all_disks[disk]['size'] > 15032385536 for partition in all_disks[disk]):
+            if all(all_disks[disk]['size'] <= 15032385536 for _ in value):
                 continue
             # Strip internal disks as well (avoid user formatting their SSD/HDD)
             # Ensure user doesn't format their boot drive
-            if not any(all_disks[disk]['removable'] is False for partition in all_disks[disk]):
-                continue
-
-            list_disks.update({
-                disk: {
+            if any(all_disks[disk]['removable'] is False for _ in all_disks[disk]):
+                list_disks[disk] = {
                     "identifier": all_disks[disk]["identifier"],
                     "name": all_disks[disk]["name"],
                     "size": all_disks[disk]["size"],
                 }
-            })
 
         return list_disks
 
@@ -263,11 +257,11 @@ class RemoteInstallerCatalog:
 
         url += f"-{os_version}"
         if seed_type == SeedType.DeveloperSeed:
-            url += f"seed"
+            url += "seed"
         elif seed_type == SeedType.PublicSeed:
-            url += f"beta"
+            url += "beta"
         elif seed_type == SeedType.CustomerSeed:
-            url += f"customerseed"
+            url += "customerseed"
 
         did_find_variant: bool = False
         for variant in CATALOG_URL_VARIANTS:
@@ -389,21 +383,23 @@ class RemoteInstallerCatalog:
                 if any([version, build, download_link, size, integrity]) is None:
                     continue
 
-                available_apps.update({
-                    product: {
-                        "Version":   version,
-                        "Build":     build,
-                        "Link":      download_link,
-                        "Size":      size,
-                        "integrity": integrity,
-                        "Source":   "Apple Inc.",
-                        "Variant":   catalog_url,
-                        "OS":        os_data.os_conversion.os_to_kernel(version),
-                        "Models":    build_plist["MobileAssetProperties"]["SupportedDeviceModels"],
-                    }
-                })
+                available_apps[product] = {
+                    "Version": version,
+                    "Build": build,
+                    "Link": download_link,
+                    "Size": size,
+                    "integrity": integrity,
+                    "Source": "Apple Inc.",
+                    "Variant": catalog_url,
+                    "OS": os_data.os_conversion.os_to_kernel(version),
+                    "Models": build_plist["MobileAssetProperties"][
+                        "SupportedDeviceModels"
+                    ],
+                }
 
-        available_apps = {k: v for k, v in sorted(available_apps.items(), key=lambda x: x[1]['Version'])}
+        available_apps = dict(
+            sorted(available_apps.items(), key=lambda x: x[1]['Version'])
+        )
         return available_apps
 
 
@@ -436,9 +432,7 @@ class RemoteInstallerCatalog:
                         remote_version = newest_apps[ia]["Version"].split(".")
                         if remote_version[0] == "10":
                             remote_version.pop(0)
-                            remote_version.pop(0)
-                        else:
-                            remote_version.pop(0)
+                        remote_version.pop(0)
                         if int(remote_version[0]) > remote_version_minor:
                             remote_version_minor = int(remote_version[0])
                             remote_version_security = 0 # Reset as new minor version found
@@ -456,22 +450,19 @@ class RemoteInstallerCatalog:
                     remote_version = newest_apps[ia]["Version"].split(".")
                     if remote_version[0] == "10":
                         remote_version.pop(0)
-                        remote_version.pop(0)
-                    else:
-                        remote_version.pop(0)
+                    remote_version.pop(0)
                     if int(remote_version[0]) < remote_version_minor:
                         newest_apps.pop(ia)
                         continue
                     if int(remote_version[0]) == remote_version_minor:
-                        if len(remote_version) > 1:
-                            if int(remote_version[1]) < remote_version_security:
-                                newest_apps.pop(ia)
-                                continue
-                        else:
-                            if remote_version_security > 0:
-                                newest_apps.pop(ia)
-                                continue
-
+                        if (
+                            len(remote_version) > 1
+                            and int(remote_version[1]) < remote_version_security
+                            or len(remote_version) <= 1
+                            and remote_version_security > 0
+                        ):
+                            newest_apps.pop(ia)
+                            continue
                     # Remove duplicate builds
                     #   ex.  macOS 12.5.1 has 2 builds in the Software Update Catalog
                     #   ref: https://twitter.com/classicii_mrmac/status/1560357471654379522
@@ -564,8 +555,6 @@ class LocalInstallerCatalog:
                 # Ref: https://github.com/dortania/OpenCore-Legacy-Patcher/discussions/1038
                 min_required = os_data.os_data.el_capitan
 
-            # app_version can sometimes report GM instead of the actual version
-            # This is a workaround to get the actual version
             if app_version.startswith("GM"):
                 if kernel == 0:
                     app_version = "Unknown"
@@ -582,19 +571,19 @@ class LocalInstallerCatalog:
             if results[1] is not None:
                 app_version = results[1]
 
-            application_list.update({
-                application: {
-                    "Short Name": clean_name,
-                    "Version": app_version,
-                    "Build": app_sdk,
-                    "Path": application,
-                    "Minimum Host OS": min_required,
-                    "OS": kernel
-                }
-            })
+            application_list[application] = {
+                "Short Name": clean_name,
+                "Version": app_version,
+                "Build": app_sdk,
+                "Path": application,
+                "Minimum Host OS": min_required,
+                "OS": kernel,
+            }
 
         # Sort Applications by version
-        application_list = {k: v for k, v in sorted(application_list.items(), key=lambda item: item[1]["Version"])}
+        application_list = dict(
+            sorted(application_list.items(), key=lambda item: item[1]["Version"])
+        )
         return application_list
 
 
